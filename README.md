@@ -36,7 +36,7 @@ tools/template-preview/ 在 Node 里用 CanvasKit 渲染所有模板，改模板
 
 ## 在真机上跑起来
 
-前提：Mac + Xcode、Node 22.13+ 或 24（Expo 不支持奇数版本）、pnpm 10、iPhone/iPad 已开启开发者模式。免费 Apple ID 的 Personal Team 就能装到自己的设备上（证书 7 天有效）。
+前提：Mac + **Xcode 26 或更新**（Expo SDK 58 不支持 Xcode 16；Xcode 26 需要 macOS 15.6+）、Node 22.13+ 或 24（Expo 不支持奇数版本，仓库根目录有 `.nvmrc`，用 nvm 的话执行 `nvm use`）、pnpm 10、iPhone/iPad 已开启开发者模式。免费 Apple ID 的 Personal Team 就能装到自己的设备上（证书 7 天有效）。
 
 ```bash
 pnpm install
