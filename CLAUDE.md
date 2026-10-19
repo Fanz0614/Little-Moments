@@ -1,0 +1,55 @@
+# Little Moments — context for Claude
+
+AI-assisted baby photo journal for iPad-first "digital journaling" mums. Phase 1 = no AI; validate layout quality, editing feel, and "one page in under 3 minutes" on real devices. Owner: Jacky (frontend dev, React/TS). Reply in Chinese unless asked otherwise.
+
+## Decisions already made (don't relitigate without new evidence)
+
+- **React Native (Expo SDK 58, RN 0.88) over Capacitor/PWA.** Owner knows RN; native gestures; Skia canvas. iOS/iPadOS first; Android only "renders, untuned".
+- **Canvas = @shopify/react-native-skia 2.14** + Reanimated 4 + **Gesture Handler 3 (hook API: `usePanGesture`, `useSimultaneousGestures`, callbacks `onBegin/onUpdate/onFinalize`)** — not the v2 `Gesture.Pan()` builder.
+- **PageDocument (packages/page-schema) is the single source of truth.** Units are PDF points, A4 = 595×842. Screen and 300 dpi export are just scales. Versioned with `schemaVersion` + migrations (`migrations.ts`) — pages must survive years.
+- **Layout engine is deterministic and pure TS** (`packages/layout-engine`). Text measurement is injected (`MeasureText`); app passes Skia Paragraph, tests pass a fake. AI (Phase 2) will only pick template/slot assignments/captions, never coordinates.
+- **Local-first, no backend in Phase 1.** SQLite (expo-sqlite) for pages/photos/events; files under `Paths.document`, stored as **relative** paths (iOS container path changes).
+- **Memory budget:** photos are downsampled at decode time on import (`WORK_EDGE` 2560, thumbs 480). Never load originals into Skia.
+- **PDF export = one 300 dpi JPEG per page** via pdf-lib (text not selectable). Vector text + CJK subsetting deferred.
+- Gestures mutate shared values only (UI thread); commit to the doc once on gesture end (`EditorCanvas.tsx`). Shared values use `.get()/.set()` (React Compiler lint rule).
+
+## Layout
+
+```
+apps/mobile/src/app        expo-router screens: index (grid), new (import+select+caption), page/[id] (editor)
+apps/mobile/src/editor     EditorCanvas (gestures), useEditor (undo + debounced save), text/sticker sheets
+apps/mobile/src/render     PageContent (shared by screen + export), text.ts (Skia paragraph), export.tsx
+apps/mobile/src/photos     import/downscale, dates (pure, tested), files, orphan cleanup
+apps/mobile/src/db         migrate, repo, events (local-only metrics: time from flow start to first export)
+packages/page-schema       Zod schema, migrations, geometry, edit helpers (+ vitest)
+packages/layout-engine     7 templates (3/4/5 photos), slot assignment, text fitting, stickers (+ vitest)
+tools/template-preview     renders every template headless (CanvasKit) with the real PageContent → PNGs
+```
+
+## Commands
+
+```bash
+pnpm install                     # Node 22 (.nvmrc), pnpm 10 via corepack
+pnpm test                        # vitest in all packages
+pnpm typecheck
+cd apps/mobile && npx expo lint  # must pass (React Compiler rules)
+npx expo run:ios                 # simulator; needs Xcode 26+ (Xcode 16 fails on ExpoModulesJSI)
+npx eas-cli@latest build -p ios --profile simulator   # cloud build when local Xcode is too old
+npx eas-cli@latest build -p android --profile preview # APK for Android tablets
+pnpm --filter @lm/template-preview preview            # needs a CJK .otf in tools/template-preview/
+```
+
+`ios/` and `android/` are generated (CNG) and gitignored — change `app.json`/config plugins, never edit them by hand. Install native deps with `npx expo install`.
+
+## Status (2026-10-20)
+
+- Phase 1 code complete and pushed; 57 unit tests, typecheck and lint green; iOS/Android JS bundles and prebuild verified.
+- Owner's Mac: upgraded to Xcode 26-capable setup; first local simulator build **succeeded** (Metro bundled). Was locating the Simulator app (`open -a Simulator` not found — check `$(xcode-select -p)/Applications/` for Simulator.app vs Xcode 27's Device Hub).
+- **Not yet verified on device:** gesture feel (any one-frame snap-back on release), memory with 48 MP photos, export timings, PDF in Goodnotes, HEIC import, EXIF dates. See README "真机测试清单".
+
+## Next candidates (owner decides)
+
+1. Pan/zoom a photo inside its frame (edit `crop`) — biggest missing editing feature.
+2. On-device dedupe/blur/face via a Swift Expo Module using Apple Vision (feature prints, aesthetics).
+3. Backup: export bundle (JSON + photos) first; data model already UUID-based for later sync.
+4. Phase 2: AI Gateway (Node/Hono) — thumbnails only with consent, Zod-validated JSON output, fallback to rules, captions marked as drafts (`source: 'ai-draft'` to add to TextLayer).
