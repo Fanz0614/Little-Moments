@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Little Moments",
+    "slug": "little-moments",
+    "scheme": "littlemoments",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.jackyzhang.littlemoments"
+    },
+    "android": {
+      "package": "com.jackyzhang.littlemoments",
+      "adaptiveIcon": {
+        "backgroundColor": "#FBF6EE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "plugins": [
+      "expo-router",
+      "expo-sqlite",
+      "expo-sharing",
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Little Moments 需要读取你选择的照片来制作手账。照片只保存在本机。",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

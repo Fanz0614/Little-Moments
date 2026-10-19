@@ -1,0 +1,12 @@
+{
+  "name": "@lm/template-preview",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Render every layout template with the app's real PageContent component, headless (CanvasKit), to PNGs.",
+  "scripts": {
+    "preview": "node build.mjs && node dist/preview.cjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2"
+  }
+}

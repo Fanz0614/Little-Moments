@@ -1,0 +1,9 @@
+{
+  "name": "little-moments",
+  "private": true,
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
