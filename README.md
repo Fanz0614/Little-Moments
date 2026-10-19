@@ -53,6 +53,25 @@ npx expo run:ios --device  # 首次会 prebuild + pod install + 编译 dev clien
 npx expo run:ios --device --configuration Release
 ```
 
+## 在安卓平板上测试
+
+不需要 Android Studio，用 EAS 云构建出一个 APK，直接装到平板上：
+
+```bash
+pnpm install
+cd apps/mobile
+npx eas-cli@latest login                                  # 免费 Expo 账号
+npx eas-cli@latest build -p android --profile preview    # 首次会问是否创建 EAS 项目，选 Yes
+```
+
+构建完成后终端会给出一个链接和二维码，用平板打开下载 APK 安装（需要允许“安装未知来源应用”）。`preview` 是独立的 Release 包，JS 已经打包进去，不需要连电脑。
+
+- 第一次运行 `eas build` 会把 `extra.eas.projectId` 写进 `app.json`，记得提交。
+- 每改一次代码都要重新构建。免费额度的队列可能要等一阵。
+- 本地构建也可以：装 Android Studio，平板开 USB 调试，然后运行 `npx expo run:android --device --variant release`。
+
+注意：目标用户在 iPad 上，安卓平板的结果只能验证流程、排版和手势逻辑，**性能和内存数据不能代表 iPad**。安卓上的字体走系统默认字体，没有针对性调过。
+
 ## 真机测试清单
 
 这一版存在的意义就是拿到下面这些数据。
