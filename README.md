@@ -32,6 +32,7 @@ apps/mobile/            Expo SDK 58 + React Native 0.88（iOS 优先）
   src/db/               SQLite 迁移、仓储、本地埋点
 packages/page-schema/   PageDocument 的 Zod schema、版本迁移、几何与编辑纯函数
 packages/layout-engine/ 模板数据、确定性排版、贴纸矢量
+packages/ai-contracts/  AI 配文的请求/输出/响应契约、输出解析与校验、兜底文案、提示词
 tools/template-preview/ 在 Node 里用 CanvasKit 渲染所有模板，改模板不用上真机
 ```
 

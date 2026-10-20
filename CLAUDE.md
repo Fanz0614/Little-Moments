@@ -27,6 +27,7 @@ apps/mobile/src/photos     import/downscale, dates (pure, tested), files, orphan
 apps/mobile/src/db         migrate, repo, events (local-only metrics: time from flow start to first export)
 packages/page-schema       Zod schema, migrations, geometry, edit helpers (+ vitest)
 packages/layout-engine     7 templates (3/4/5 photos), slot assignment, text fitting, stickers (+ vitest)
+packages/ai-contracts      caption request/output/response schemas, interpret(), fallback, prompt (+ vitest, fixtures)
 tools/template-preview     renders every template headless (CanvasKit) with the real PageContent → PNGs
 ```
 
@@ -47,14 +48,15 @@ pnpm --filter @lm/template-preview preview            # needs a CJK .otf in tool
 
 ## Status (2026-10-20)
 
-- Phase 1 editor/export pushed. **Step 1 of the AI plan done: baby profile + English UI** (126 unit tests, typecheck, lint, iOS bundle green). Adds native dep `@react-native-community/datetimepicker` → owner must `npx expo prebuild -p ios --clean` before `run:ios`.
+- Phase 1 editor/export pushed. AI plan step 2 (`ai-contracts`) done — 173 unit tests across the repo.
+- **Step 1 of the AI plan done: baby profile + English UI** (typecheck, lint, iOS bundle green). Adds native dep `@react-native-community/datetimepicker` → owner must `npx expo prebuild -p ios --clean` before `run:ios`.
 - Owner's Mac: upgraded to Xcode 26-capable setup; first local simulator build **succeeded** (Metro bundled). Was locating the Simulator app (`open -a Simulator` not found — check `$(xcode-select -p)/Applications/` for Simulator.app vs Xcode 27's Device Hub).
 - **Not yet verified on device:** gesture feel (any one-frame snap-back on release), memory with 48 MP photos, export timings, PDF in Goodnotes, HEIC import, EXIF dates. See README "真机测试清单".
 
 ## Agreed AI plan (owner reviews each step before code)
 
 1. ~~Baby profile~~ (done)
-2. `packages/ai-contracts`: Zod schema for caption output (title ≤24, caption ≤160, tone enum, mentionsMilestone), prompt templates with versions, fixtures for truncation / refusal / too long / fabricated milestone, deterministic fallback ("{nickname}'s day N" + user's sentence). Structured outputs via `output_config.format` (no beta header); schema can't express string lengths → Zod enforces.
+2. ~~`packages/ai-contracts`~~ (done): request `{requestId, input:{nickname, ageText, note≤300, photoCount, pronoun?}}`; model output `{title ≤40, caption ≤300}` (soft 200 in prompt) defined once in Zod → `providerJsonSchema()` strips keywords the API rejects (exact-schema test); `interpret()` = stop_reason → JSON.parse → normalise (cosmetic only) → Zod → warnings (`possible_fabrication` terms, `long_caption`); **never truncates**, over-limit → `retryHint` for one rewrite; error codes + `isRetryable`/`classifyHttpStatus`; `fallbackCaption()` ("Mia · 3 months 12 days" + user's note); `PROMPT_VERSION='caption@1'`, note wrapped in `<note>` with tag escaping. Lengths count code points (`charCount`).
 3. `apps/api`: Hono proxy, run locally first (simulator reaches Mac localhost); retries only on 429/529/5xx/network with backoff + retry-after, max 2, ~12 s budget; no retry on `max_tokens`/`refusal`/400/401; per-device daily quota; Haiku. Deploy (Cloudflare Workers) only when testing away from the Mac.
 4. App integration: loading state, fallback, `TextLayer.source: 'ai-draft'` (schemaVersion 2 + migration), edit-distance metric. Send only nickname + age text + user sentence (never full name, birthday or photos).
 
