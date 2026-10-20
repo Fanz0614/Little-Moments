@@ -33,6 +33,7 @@ apps/mobile/            Expo SDK 58 + React Native 0.88（iOS 优先）
 packages/page-schema/   PageDocument 的 Zod schema、版本迁移、几何与编辑纯函数
 packages/layout-engine/ 模板数据、确定性排版、贴纸矢量
 packages/ai-contracts/  AI 配文的请求/输出/响应契约、输出解析与校验、兜底文案、提示词
+apps/api/               AI 配文代理（Hono）：重试与降级、配额、幂等、日志；目前只在本地运行
 tools/template-preview/ 在 Node 里用 CanvasKit 渲染所有模板，改模板不用上真机
 ```
 
@@ -75,6 +76,23 @@ npx eas-cli@latest build -p android --profile preview    # 首次会问是否创
 - 本地构建也可以：装 Android Studio，平板开 USB 调试，然后运行 `npx expo run:android --device --variant release`。
 
 注意：目标用户在 iPad 上，安卓平板的结果只能验证流程、排版和手势逻辑，**性能和内存数据不能代表 iPad**。安卓上的字体走系统默认字体，没有针对性调过。
+
+## 本地运行 AI 配文服务
+
+```bash
+cd apps/api
+cp .env.example .env        # 填入 ANTHROPIC_API_KEY；.env 已被 gitignore
+pnpm smoke                  # 真实调用 3 次：验证 API 接受我们的 JSON Schema，并看延迟
+pnpm dev                    # http://localhost:8787 ，模拟器可直接访问
+```
+
+```bash
+curl -s -X POST localhost:8787/v1/captions \
+  -H 'content-type: application/json' -H 'x-device-id: 0b6f2a7c-6a39-4b7e-9c55-3f1d2e8a9b10' \
+  -d '{"requestId":"7d3c8a0e-2f4b-4c1d-9e8f-000000000001","input":{"nickname":"Mia","ageText":"3 months 12 days","note":"rolled over today","photoCount":3,"pronoun":"she"}}'
+```
+
+**上线前必须先做身份校验**（App Attest 或用户登录）。`X-Device-Id` 由 App 自己生成，可以伪造，只用于限流。
 
 ## 真机测试清单
 

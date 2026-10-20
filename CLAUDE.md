@@ -28,6 +28,7 @@ apps/mobile/src/db         migrate, repo, events (local-only metrics: time from 
 packages/page-schema       Zod schema, migrations, geometry, edit helpers (+ vitest)
 packages/layout-engine     7 templates (3/4/5 photos), slot assignment, text fitting, stickers (+ vitest)
 packages/ai-contracts      caption request/output/response schemas, interpret(), fallback, prompt (+ vitest, fixtures)
+apps/api                   Hono caption proxy: generate.ts (retry policy), app.ts (routes, quota, idempotency, logs), anthropic.ts (SDK adapter)
 tools/template-preview     renders every template headless (CanvasKit) with the real PageContent → PNGs
 ```
 
@@ -48,7 +49,7 @@ pnpm --filter @lm/template-preview preview            # needs a CJK .otf in tool
 
 ## Status (2026-10-20)
 
-- Phase 1 editor/export pushed. AI plan step 2 (`ai-contracts`) done — 173 unit tests across the repo.
+- Phase 1 editor/export pushed. AI plan steps 2 (`ai-contracts`) and 3 (`apps/api`, local) done — 219 unit tests across the repo. Real-API smoke test not yet run (needs the owner's key).
 - **Step 1 of the AI plan done: baby profile + English UI** (typecheck, lint, iOS bundle green). Adds native dep `@react-native-community/datetimepicker` → owner must `npx expo prebuild -p ios --clean` before `run:ios`.
 - Owner's Mac: upgraded to Xcode 26-capable setup; first local simulator build **succeeded** (Metro bundled). Was locating the Simulator app (`open -a Simulator` not found — check `$(xcode-select -p)/Applications/` for Simulator.app vs Xcode 27's Device Hub).
 - **Not yet verified on device:** gesture feel (any one-frame snap-back on release), memory with 48 MP photos, export timings, PDF in Goodnotes, HEIC import, EXIF dates. See README "真机测试清单".
@@ -57,7 +58,9 @@ pnpm --filter @lm/template-preview preview            # needs a CJK .otf in tool
 
 1. ~~Baby profile~~ (done)
 2. ~~`packages/ai-contracts`~~ (done): request `{requestId, input:{nickname, ageText, note≤300, photoCount, pronoun?}}`; model output `{title ≤40, caption ≤300}` (soft 200 in prompt) defined once in Zod → `providerJsonSchema()` strips keywords the API rejects (exact-schema test); `interpret()` = stop_reason → JSON.parse → normalise (cosmetic only) → Zod → warnings (`possible_fabrication` terms, `long_caption`); **never truncates**, over-limit → `retryHint` for one rewrite; error codes + `isRetryable`/`classifyHttpStatus`; `fallbackCaption()` ("Mia · 3 months 12 days" + user's note); `PROMPT_VERSION='caption@1'`, note wrapped in `<note>` with tag escaping. Lengths count code points (`charCount`).
-3. `apps/api`: Hono proxy, run locally first (simulator reaches Mac localhost); retries only on 429/529/5xx/network with backoff + retry-after, max 2, ~12 s budget; no retry on `max_tokens`/`refusal`/400/401; per-device daily quota; Haiku. Deploy (Cloudflare Workers) only when testing away from the Mac.
+3. ~~`apps/api`~~ (done, local only): Hono on Node (`pnpm --filter @lm/api dev`, port 8787, binds 0.0.0.0). `POST /v1/captions` (header `X-Device-Id` uuid) → always 200 + `CaptionResponse` for valid requests; 400 for bad body/device id. `generateCaption()` = max 3 calls, 12 s budget, 8 s/call, min 1.5 s left to start a call, equal-jitter backoff (base 500, cap 4000), retry-after honoured or fall back if it doesn't fit, one rewrite for schema_violation/invalid_json. Anthropic SDK with **`maxRetries: 0`** (SDK default 2 would multiply retries). Quotas 30/device/day + 1000 global/day (UTC day) and requestId idempotency (per device, 5 min, in-flight dedupe) behind `QuotaStore`/`IdempotencyStore` — memory now; Durable Objects on Workers or Redis on multi-instance Node later, **not KV**. Logs: one JSON line per request, lengths only, device id hashed. `pnpm --filter @lm/api smoke` = real-API check (needs `.env`).
+   - **Deploy gate (agreed): do not deploy publicly until App Attest or user sign-in exists.** `X-Device-Id` is client-generated and forgeable; it is only a rate-limit key.
+   - `@lm/ai-contracts` is `"type": "module"` so tsx/Node can load it; Metro resolution of it is still unverified (step 4).
 4. App integration: loading state, fallback, `TextLayer.source: 'ai-draft'` (schemaVersion 2 + migration), edit-distance metric. Send only nickname + age text + user sentence (never full name, birthday or photos).
 
 ## Next candidates (owner decides)
