@@ -26,8 +26,12 @@ const MILESTONES: readonly { term: string; re: RegExp }[] = [
   { term: 'walking', re: /\bwalk(?:ed|ing)\b/i },
   { term: 'standing', re: /\b(?:stood|stand(?:s|ing)?)\b/i },
   { term: 'sitting up', re: /\b(?:sat|sit(?:s|ting)?)\s+up\b/i },
-  // Babies rarely "say" things; if the user didn't write it, the model made it up.
-  { term: 'speaking', re: /\b(?:said|says|saying)\b/i },
+  // Reported speech only: a quote, or a typical first word. Plain "said" is too
+  // idiomatic ("said it all", "needless to say") and caused false positives.
+  {
+    term: 'speaking',
+    re: /\b(?:said|says|saying)\s+(?:["“'‘]|(?:mama|mummy|mommy|mum|mom|dada|daddy|papa|hi|hello|bye|no)\b)/i,
+  },
   { term: 'tooth', re: /\b(?:tooth|teeth|teething)\b/i },
   { term: 'birthday', re: /\bbirthdays?\b/i },
 ];

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CaptionResponse } from '@lm/ai-contracts';
+import { CaptionResponse, PROMPT_VERSION } from '@lm/ai-contracts';
 import { createApp, deviceKey, type LogLine } from '../src/app';
 import { MemoryIdempotencyStore, MemoryQuotaStore } from '../src/stores';
 import { FakeClock, FakeModel, config, err, input, ok } from './helpers';
@@ -31,7 +31,7 @@ describe('POST /v1/captions', () => {
     expect(res.status).toBe(200);
     const body = CaptionResponse.parse(await res.json());
     expect(body.status).toBe('ok');
-    expect(body.meta).toMatchObject({ requestId: rid(1), promptVersion: 'caption@1', model: 'claude-haiku-5-5', attempts: 1 });
+    expect(body.meta).toMatchObject({ requestId: rid(1), promptVersion: PROMPT_VERSION, model: 'claude-haiku-5-5', attempts: 1 });
   });
 
   it('returns 200 with a fallback when the model fails', async () => {
@@ -129,7 +129,7 @@ describe('logging', () => {
 describe('misc', () => {
   it('GET /health reports model and prompt version', async () => {
     const { app } = setup([]);
-    expect(await (await app.request('/health')).json()).toEqual({ ok: true, model: 'claude-haiku-5-5', promptVersion: 'caption@1' });
+    expect(await (await app.request('/health')).json()).toEqual({ ok: true, model: 'claude-haiku-5-5', promptVersion: PROMPT_VERSION });
   });
 
   it('deviceKey is stable, short and not the raw id', async () => {

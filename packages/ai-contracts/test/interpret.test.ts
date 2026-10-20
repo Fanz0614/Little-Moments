@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CaptionOutput, interpret, isRetryable, normalizeOutput } from '../src';
+import { CaptionOutput, findFabricatedMilestones, interpret, isRetryable, normalizeOutput } from '../src';
 import { FIXTURES, NOTE } from './fixtures';
 
 const run = (name: keyof typeof FIXTURES, note = NOTE) => interpret(FIXTURES[name], note);
@@ -105,6 +105,23 @@ describe('interpret: fabrication warnings', () => {
 
   it('matches word forms on both sides ("rolled over" in note, "rolls over" in output)', () => {
     expect(run('ok').ok && run('ok')).toMatchObject({ warnings: [] });
+  });
+});
+
+describe('fabrication check: reported speech', () => {
+  const out = (caption: string) => ({ title: 'Mia', caption });
+  it.each([
+    ['The look on her face said it all.', []],
+    ['Needless to say, it was a good day.', []],
+    ['She said "mama" for the first time.', ['first', 'speaking']],
+    ['Then she said mama!', ['speaking']],
+    ['He says hi to everyone.', ['speaking']],
+  ] as const)('%s -> %o', (caption, terms) => {
+    expect(findFabricatedMilestones(out(caption), 'a quiet day at home')).toEqual(terms);
+  });
+
+  it('does not flag speech the parent wrote down', () => {
+    expect(findFabricatedMilestones(out('Then she said mama!'), 'she said mama today')).toEqual([]);
   });
 });
 

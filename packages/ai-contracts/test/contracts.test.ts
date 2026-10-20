@@ -5,6 +5,7 @@ import {
   CaptionRequest,
   CaptionResponse,
   ErrorCode,
+  PROMPT_EXAMPLES,
   PROMPT_VERSION,
   SYSTEM_PROMPT,
   UNSUPPORTED_SCHEMA_KEYWORDS,
@@ -15,6 +16,7 @@ import {
   isAlertWorthy,
   isRetryable,
   providerJsonSchema,
+  semanticWarnings,
 } from '../src';
 
 const input = { nickname: 'Mia', ageText: '3 months 12 days', note: 'rolled over today', photoCount: 3, pronoun: 'she' } as const;
@@ -170,6 +172,15 @@ describe('prompt', () => {
     const m = buildMessages(input, { previousReply: '{"title":"x"}', hint: 'The title was 52 characters.' });
     expect(m.map((x) => x.role)).toEqual(['user', 'assistant', 'user']);
     expect(m[2]?.content).toContain('The title was 52 characters.');
+  });
+
+  it('every example passes our own semantic checks against its own note (no warnings)', () => {
+    // An example that trips a warning teaches the model to trip it (caption@1 had "said it all").
+    for (const e of PROMPT_EXAMPLES) expect(semanticWarnings(e.output, e.input.note), e.output.caption).toEqual([]);
+  });
+
+  it('every example input is a valid request input', () => {
+    for (const e of PROMPT_EXAMPLES) expect(CaptionInput.safeParse(e.input).success).toBe(true);
   });
 
   it('every example in the system prompt is itself a valid CaptionOutput', () => {
