@@ -24,6 +24,9 @@ import { docUri } from '@/photos/files';
 import { skiaMeasureText } from '@/render/text';
 import { Button } from '@/ui/Button';
 import { colors, radius } from '@/ui/theme';
+import { S } from '@/strings';
+import { useBaby } from '@/baby/BabyContext';
+import { ageText, isValidCalendarDate } from '@/baby/derive';
 
 const MIN = Math.min(...SUPPORTED_PHOTO_COUNTS);
 const MAX = Math.max(...SUPPORTED_PHOTO_COUNTS);
@@ -31,6 +34,7 @@ const MAX = Math.max(...SUPPORTED_PHOTO_COUNTS);
 export default function NewPage() {
   const db = useSQLiteContext();
   const { width } = useWindowDimensions();
+  const { baby } = useBaby();
   const [flowId] = useState(() => randomUUID());
   const [photos, setPhotos] = useState<PhotoRow[]>([]);
   const [selected, setSelected] = useState<string[]>([]);
@@ -60,7 +64,7 @@ export default function NewPage() {
       });
       if (!journalDate) setJournalDate(suggestJournalDate(all));
     } catch (e) {
-      Alert.alert('导入失败', e instanceof Error ? e.message : String(e));
+      Alert.alert(S.newPage.importFailed, e instanceof Error ? e.message : String(e));
     } finally {
       setProgress(null);
     }
@@ -70,7 +74,7 @@ export default function NewPage() {
     setSelected((s) => (s.includes(id) ? s.filter((x) => x !== id) : s.length >= MAX ? s : [...s, id]));
   };
 
-  const dateValid = /^\d{4}-\d{2}-\d{2}$/.test(journalDate) && !Number.isNaN(Date.parse(journalDate));
+  const dateValid = isValidCalendarDate(journalDate);
   const canCreate = selected.length >= MIN && selected.length <= MAX && dateValid && !creating;
 
   const create = async () => {
@@ -85,32 +89,33 @@ export default function NewPage() {
           journalDate,
           photos: chosen.map((p) => ({ id: p.id, width: p.width, height: p.height })),
           caption,
+          ageText: baby ? ageText(baby.birthday, journalDate) : undefined,
           now: Date.now(),
           newId: randomUUID,
         },
         skiaMeasureText,
       );
-      await savePage(db, doc);
+      await savePage(db, doc, { babyId: baby?.id ?? null });
       await logEvent(db, 'page_created', pageId, { flowId, photoCount: chosen.length, templateId: doc.templateId });
       router.replace(`/page/${pageId}`);
     } catch (e) {
       setCreating(false);
-      Alert.alert('生成失败', e instanceof Error ? e.message : String(e));
+      Alert.alert(S.newPage.createFailed, e instanceof Error ? e.message : String(e));
     }
   };
 
   const cols = width >= 700 ? 5 : 3;
   const tile = (width - 20 * 2 - 8 * (cols - 1)) / cols;
   const hint = useMemo(() => {
-    if (photos.length === 0) return `从相册选 ${MIN}–${MAX} 张今天的照片（最多导入 ${MAX_PICK} 张再挑）`;
-    if (selected.length < MIN) return `再选 ${MIN - selected.length} 张`;
-    return `已选 ${selected.length} 张 · 点照片可取消或替换`;
+    if (photos.length === 0) return S.newPage.hintEmpty(MIN, MAX, MAX_PICK);
+    if (selected.length < MIN) return S.newPage.hintMore(MIN - selected.length);
+    return S.newPage.hintSelected(selected.length);
   }, [photos.length, selected.length]);
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.step}>1 · 照片</Text>
+        <Text style={styles.step}>{S.newPage.stepPhotos}</Text>
         <Text style={styles.hint}>{hint}</Text>
 
         <View style={styles.grid}>
@@ -137,24 +142,24 @@ export default function NewPage() {
                   </Text>
                 </>
               ) : (
-                <Text style={styles.addPlus}>＋</Text>
+                <Text style={styles.addPlus}>+</Text>
               )}
             </Pressable>
           )}
         </View>
 
-        <Text style={[styles.step, { marginTop: 28 }]}>2 · 今天发生了什么</Text>
+        <Text style={[styles.step, { marginTop: 28 }]}>{S.newPage.stepCaption}</Text>
         <TextInput
           value={caption}
           onChangeText={setCaption}
-          placeholder="一句话就好，比如：第一次自己翻身，笑了好久"
+          placeholder={S.newPage.captionPlaceholder}
           placeholderTextColor={colors.faint}
           multiline
           maxLength={400}
           style={[styles.input, { minHeight: 96, textAlignVertical: 'top' }]}
         />
 
-        <Text style={[styles.step, { marginTop: 20 }]}>日期</Text>
+        <Text style={[styles.step, { marginTop: 20 }]}>{S.newPage.date}</Text>
         <TextInput
           value={journalDate}
           onChangeText={setJournalDate}
@@ -165,9 +170,9 @@ export default function NewPage() {
           keyboardType="numbers-and-punctuation"
           style={[styles.input, !dateValid && journalDate.length > 0 && { borderColor: colors.danger }]}
         />
-        <Text style={styles.small}>默认用照片的拍摄日期</Text>
+        <Text style={styles.small}>{S.newPage.dateHint}</Text>
 
-        <Button title="生成手账" onPress={create} disabled={!canCreate} loading={creating} style={{ marginTop: 28 }} />
+        <Button title={S.newPage.create} onPress={create} disabled={!canCreate} loading={creating} style={{ marginTop: 28 }} />
       </ScrollView>
     </KeyboardAvoidingView>
   );

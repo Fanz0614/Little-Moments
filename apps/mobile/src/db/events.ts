@@ -4,10 +4,10 @@ import type { SQLiteDatabase } from 'expo-sqlite';
  * Local-only product metrics. Nothing leaves the device. These exist to check
  * the Phase 1 hypothesis "a page takes under 3 minutes" with real numbers.
  *
- *   flow_started   user opened "新建一页"            data: { flowId }
+ *   flow_started   user opened "New page"            data: { flowId }
  *   page_created   layout generated and saved        data: { flowId, photoCount, templateId }
  *   page_exported  PNG/PDF shared                    data: { format }
- *   relayout       user tapped 换个排版              data: { templateId }
+ *   relayout       user tapped Shuffle layout              data: { templateId }
  */
 export type EventName = 'flow_started' | 'page_created' | 'page_exported' | 'relayout';
 
@@ -34,7 +34,7 @@ export async function logEvent(
 export type CreationStats = {
   /** Pages that have both a flow start and a first export. */
   measuredPages: number;
-  /** Median ms from opening "新建一页" to the page's first export. */
+  /** Median ms from opening "New page" to the page's first export. */
   medianMs: number | null;
 };
 

@@ -80,7 +80,7 @@ async function importOne(db: SQLiteDatabase, asset: ImagePicker.ImagePickerAsset
   return row;
 }
 
-async function downscale(uri: string, longEdge: number, compress: number) {
+export async function downscale(uri: string, longEdge: number, compress: number) {
   // Downsample during decode so the full-resolution bitmap is never allocated.
   const ctx = ImageManipulator.manipulate(uri, { maxWidth: longEdge, maxHeight: longEdge });
   const ref = await ctx.renderAsync();

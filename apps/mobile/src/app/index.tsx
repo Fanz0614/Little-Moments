@@ -7,14 +7,18 @@ import { creationStats, type CreationStats } from '@/db/events';
 import { cleanupOrphans } from '@/photos/cleanup';
 import { deleteIfExists, docUri } from '@/photos/files';
 import { formatJournalDate } from '@lm/layout-engine';
+import { useBaby } from '@/baby/BabyContext';
+import { BabyHeader } from '@/baby/BabyHeader';
 import { Button } from '@/ui/Button';
 import { colors, radius } from '@/ui/theme';
+import { S } from '@/strings';
 
 export default function Home() {
   const db = useSQLiteContext();
   const { width } = useWindowDimensions();
   const [pages, setPages] = useState<PageSummary[] | null>(null);
   const [stats, setStats] = useState<CreationStats | null>(null);
+  const { baby } = useBaby();
 
   const refresh = useCallback(async () => {
     setPages(await listPages(db));
@@ -36,10 +40,10 @@ export default function Home() {
   const tileW = (width - 20 * 2 - gap * (columns - 1)) / columns;
 
   const confirmDelete = (p: PageSummary) => {
-    Alert.alert('删除这一页？', formatJournalDate(p.journalDate, 'zh'), [
-      { text: '取消', style: 'cancel' },
+    Alert.alert(S.home.deleteTitle, formatJournalDate(p.journalDate, 'en'), [
+      { text: S.common.cancel, style: 'cancel' },
       {
-        text: '删除',
+        text: S.common.delete,
         style: 'destructive',
         onPress: async () => {
           await deletePage(db, p.id);
@@ -54,14 +58,15 @@ export default function Home() {
     <View style={styles.root}>
       <Stack.Screen
         options={{
-          headerRight: () => <Button title="新建" compact onPress={() => router.push('/new')} />,
+          headerRight: () => <Button title={S.home.newPage} compact onPress={() => router.push('/new')} />,
         }}
       />
       {pages && pages.length === 0 ? (
         <View style={styles.empty}>
-          <Text style={styles.emptyTitle}>还没有手账</Text>
-          <Text style={styles.emptyBody}>选 3–5 张今天的照片，写一句话，{'\n'}剩下的排版交给 Little Moments。</Text>
-          <Button title="做第一页" onPress={() => router.push('/new')} style={{ marginTop: 24, alignSelf: 'stretch' }} />
+          {baby ? <BabyHeader baby={baby} style={styles.emptyHeader} /> : null}
+          <Text style={styles.emptyTitle}>{S.home.emptyTitle}</Text>
+          <Text style={styles.emptyBody}>{S.home.emptyBody}</Text>
+          <Button title={S.home.firstPage} onPress={() => router.push('/new')} style={{ marginTop: 24, alignSelf: 'stretch' }} />
         </View>
       ) : (
         <FlatList
@@ -71,6 +76,7 @@ export default function Home() {
           keyExtractor={(p) => p.id}
           contentContainerStyle={{ padding: 20, gap }}
           columnWrapperStyle={{ gap }}
+          ListHeaderComponent={baby ? <BabyHeader baby={baby} /> : undefined}
           ListFooterComponent={stats ? <StatsFooter stats={stats} /> : undefined}
           renderItem={({ item }) => (
             <Pressable
@@ -84,7 +90,7 @@ export default function Home() {
                 ) : null}
               </View>
               <Text style={styles.date} numberOfLines={1}>
-                {formatJournalDate(item.journalDate, 'zh')}
+                {formatJournalDate(item.journalDate, 'en')}
               </Text>
             </Pressable>
           )}
@@ -97,16 +103,14 @@ export default function Home() {
 function StatsFooter({ stats }: { stats: CreationStats }) {
   if (stats.medianMs == null) return null;
   const mins = stats.medianMs / 60000;
-  return (
-    <Text style={styles.stats}>
-      本机统计：{stats.measuredPages} 页从开始到首次导出的中位耗时 {mins < 1 ? `${Math.round(stats.medianMs / 1000)} 秒` : `${mins.toFixed(1)} 分钟`}
-    </Text>
-  );
+  const median = mins < 1 ? S.home.seconds(Math.round(stats.medianMs / 1000)) : S.home.minutes(mins);
+  return <Text style={styles.stats}>{S.home.stats(stats.measuredPages, median)}</Text>;
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.paper },
   empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
+  emptyHeader: { position: 'absolute', top: 20, left: 20, right: 20 },
   emptyTitle: { fontSize: 22, fontWeight: '700', color: colors.ink },
   emptyBody: { marginTop: 10, fontSize: 15, lineHeight: 22, color: colors.softInk, textAlign: 'center' },
   thumb: {

@@ -4,6 +4,7 @@ import { Canvas, Group, Path, Skia } from '@shopify/react-native-skia';
 import { STICKERS, type StickerDef } from '@lm/layout-engine';
 import { cssColor } from '@/render/PageContent';
 import { colors, radius } from '@/ui/theme';
+import { S } from '@/strings';
 
 const SIZE = 44;
 
@@ -33,7 +34,7 @@ export function StickerPicker({
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
         <View style={styles.sheet}>
-          <Text style={styles.title}>贴纸</Text>
+          <Text style={styles.title}>{S.stickers.title}</Text>
           <View style={styles.grid}>
             {STICKERS.map((s) => (
               <Pressable key={s.id} onPress={() => onPick(s)} style={styles.cell} accessibilityLabel={s.name}>

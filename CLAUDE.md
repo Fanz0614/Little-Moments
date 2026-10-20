@@ -11,6 +11,10 @@ AI-assisted baby photo journal for iPad-first "digital journaling" mums. Phase 1
 - **Local-first, no backend in Phase 1.** SQLite (expo-sqlite) for pages/photos/events; files under `Paths.document`, stored as **relative** paths (iOS container path changes).
 - **Memory budget:** photos are downsampled at decode time on import (`WORK_EDGE` 2560, thumbs 480). Never load originals into Skia.
 - **PDF export = one 300 dpi JPEG per page** via pdf-lib (text not selectable). Vector text + CJK subsetting deferred.
+- **Phase 1 UI is English only.** All copy lives in `apps/mobile/src/strings.ts` (no i18n framework yet). The layout engine still supports `locale: 'zh'` but the app passes `'en'`.
+- **Baby profile is required** (expo-router `Stack.Protected` in `_layout.tsx`). One baby in the UI, but the DB is multi-baby (`babies` table, `pages.baby_id`). Age and zodiac are **derived** from birthday (`src/baby/derive.ts`), never stored. Western zodiac only (Chinese zodiac was dropped with bilingual support).
+- The page heading is `dateLine(journalDate, 'en', ageText)`; the engine receives a pre-formatted `ageText` and knows nothing about babies. Already-generated pages keep their baked heading text until re-laid out.
+- Render must stay pure (React Compiler lint): read "today" via `useToday()`, not `Date.now()` in render.
 - Gestures mutate shared values only (UI thread); commit to the doc once on gesture end (`EditorCanvas.tsx`). Shared values use `.get()/.set()` (React Compiler lint rule).
 
 ## Layout
@@ -43,9 +47,16 @@ pnpm --filter @lm/template-preview preview            # needs a CJK .otf in tool
 
 ## Status (2026-10-20)
 
-- Phase 1 code complete and pushed; 57 unit tests, typecheck and lint green; iOS/Android JS bundles and prebuild verified.
+- Phase 1 editor/export pushed. **Step 1 of the AI plan done: baby profile + English UI** (126 unit tests, typecheck, lint, iOS bundle green). Adds native dep `@react-native-community/datetimepicker` → owner must `npx expo prebuild -p ios --clean` before `run:ios`.
 - Owner's Mac: upgraded to Xcode 26-capable setup; first local simulator build **succeeded** (Metro bundled). Was locating the Simulator app (`open -a Simulator` not found — check `$(xcode-select -p)/Applications/` for Simulator.app vs Xcode 27's Device Hub).
 - **Not yet verified on device:** gesture feel (any one-frame snap-back on release), memory with 48 MP photos, export timings, PDF in Goodnotes, HEIC import, EXIF dates. See README "真机测试清单".
+
+## Agreed AI plan (owner reviews each step before code)
+
+1. ~~Baby profile~~ (done)
+2. `packages/ai-contracts`: Zod schema for caption output (title ≤24, caption ≤160, tone enum, mentionsMilestone), prompt templates with versions, fixtures for truncation / refusal / too long / fabricated milestone, deterministic fallback ("{nickname}'s day N" + user's sentence). Structured outputs via `output_config.format` (no beta header); schema can't express string lengths → Zod enforces.
+3. `apps/api`: Hono proxy, run locally first (simulator reaches Mac localhost); retries only on 429/529/5xx/network with backoff + retry-after, max 2, ~12 s budget; no retry on `max_tokens`/`refusal`/400/401; per-device daily quota; Haiku. Deploy (Cloudflare Workers) only when testing away from the Mac.
+4. App integration: loading state, fallback, `TextLayer.source: 'ai-draft'` (schemaVersion 2 + migration), edit-distance metric. Send only nickname + age text + user sentence (never full name, birthday or photos).
 
 ## Next candidates (owner decides)
 

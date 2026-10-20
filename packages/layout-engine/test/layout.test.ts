@@ -6,6 +6,7 @@ import {
   TEMPLATES,
   bestAssignment,
   fitText,
+  dateLine,
   formatJournalDate,
   getSticker,
   layoutPage,
@@ -183,9 +184,35 @@ describe('bestAssignment', () => {
   });
 });
 
+describe('dateLine', () => {
+  it('uses the age instead of the weekday when given', () => {
+    expect(dateLine('2026-10-19', 'en', '3 months 12 days')).toBe('19 October 2026 · 3 months 12 days');
+    expect(dateLine('2026-10-19', 'zh', '3个月12天')).toBe('2026年10月19日 · 3个月12天');
+  });
+  it('falls back to the weekday without an age', () => {
+    expect(dateLine('2026-10-19', 'en')).toBe('Monday, 19 October 2026');
+    expect(dateLine('2026-10-19', 'en', '  ')).toBe('Monday, 19 October 2026');
+  });
+  it('is the heading of a generated page, in English by default', () => {
+    const { doc } = layoutPage(input([landscape('a'), portrait('b'), square('c')], { ageText: '3 months 12 days' }), fakeMeasure);
+    const heading = doc.layers.find((l) => l.type === 'text' && l.source === 'template');
+    expect(heading?.type === 'text' && heading.text).toBe('19 October 2026 · 3 months 12 days');
+  });
+});
+
 describe('formatJournalDate', () => {
   it('formats in Chinese and English with the right weekday', () => {
     expect(formatJournalDate('2026-10-19', 'zh')).toBe('2026年10月19日 · 星期一');
     expect(formatJournalDate('2026-10-19', 'en')).toBe('Monday, 19 October 2026');
+  });
+});
+
+describe('templates (heading vs decor)', () => {
+  it.each(TEMPLATES.map((t) => [t.id, t] as const))('%s keeps stickers clear of the heading', (_id, t) => {
+    const h = t.date.frame;
+    for (const d of t.decor) {
+      const overlaps = d.frame.x < h.x + h.width && d.frame.x + d.frame.width > h.x && d.frame.y < h.y + h.height && d.frame.y + d.frame.height > h.y;
+      expect(overlaps, `${t.id}:${d.stickerId}`).toBe(false);
+    }
   });
 });

@@ -29,11 +29,12 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "Little Moments 需要读取你选择的照片来制作手账。照片只保存在本机。",
+          "photosPermission": "Little Moments uses the photos you choose to make journal pages. Photos stay on this device.",
           "cameraPermission": false,
           "microphonePermission": false
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

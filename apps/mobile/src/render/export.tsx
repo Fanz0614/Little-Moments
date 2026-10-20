@@ -6,6 +6,7 @@ import type { PageDocument } from '@lm/page-schema';
 import { PageContent } from './PageContent';
 import type { PhotoImages } from './useImages';
 import { PAGE_DIR, cacheFile, docFile, ensureDirs } from '@/photos/files';
+import { S } from '@/strings';
 
 /** 300 dpi: page units are points (1/72 in). A4 -> 2480 x 3508 px. */
 export const PRINT_DPI = 300;
@@ -19,7 +20,7 @@ async function renderPage(doc: PageDocument, images: PhotoImages, pxPerUnit: num
     </Group>,
     { width, height },
   );
-  if (!image) throw new Error('渲染失败：无法创建离屏画布（可能是内存不足）');
+  if (!image) throw new Error(S.export.renderFailed);
   return { image, width, height };
 }
 
@@ -77,8 +78,8 @@ export async function exportPdf(doc: PageDocument, images: PhotoImages): Promise
 }
 
 export async function share(uri: string, mimeType: string) {
-  if (!(await Sharing.isAvailableAsync())) throw new Error('此设备不支持分享');
-  await Sharing.shareAsync(uri, { mimeType, dialogTitle: '导出手账' });
+  if (!(await Sharing.isAvailableAsync())) throw new Error(S.export.shareUnavailable);
+  await Sharing.shareAsync(uri, { mimeType, dialogTitle: S.export.shareTitle });
 }
 
 /** Small JPEG for the home grid. Returns the relative path. */

@@ -35,6 +35,22 @@ const MIGRATIONS: string[] = [
     data TEXT
   );
   `,
+  // v2: baby profile. Ages and zodiac signs are derived from birthday, never stored.
+  // pages.baby_id stays NULL for pages made before a profile existed; createBaby() claims them.
+  `
+  CREATE TABLE babies (
+    id TEXT PRIMARY KEY NOT NULL,
+    nickname TEXT NOT NULL,
+    name TEXT,
+    birthday TEXT NOT NULL,
+    gender TEXT NOT NULL DEFAULT 'unspecified',
+    avatar_path TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  );
+  ALTER TABLE pages ADD COLUMN baby_id TEXT;
+  CREATE INDEX pages_by_baby ON pages (baby_id, journal_date DESC);
+  `,
 ];
 
 export async function migrateDb(db: SQLiteDatabase): Promise<void> {

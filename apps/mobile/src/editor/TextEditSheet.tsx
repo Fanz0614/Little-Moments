@@ -3,11 +3,12 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, Tex
 import type { FontRole, TextLayer } from '@lm/page-schema';
 import { Button } from '@/ui/Button';
 import { TEXT_COLORS, colors, radius } from '@/ui/theme';
+import { S } from '@/strings';
 
 const ROLES: { role: FontRole; label: string }[] = [
-  { role: 'title', label: '标题' },
-  { role: 'body', label: '正文' },
-  { role: 'hand', label: '手写感' },
+  { role: 'title', label: S.textSheet.roles.title },
+  { role: 'body', label: S.textSheet.roles.body },
+  { role: 'hand', label: S.textSheet.roles.hand },
 ];
 
 export type TextEdit = Pick<TextLayer, 'text'> & { style: TextLayer['style'] };
@@ -33,7 +34,7 @@ function Sheet({ layer, onClose, onSave }: { layer: TextLayer; onClose: () => vo
             multiline
             autoFocus
             style={styles.input}
-            placeholder="写点什么…"
+            placeholder={S.textSheet.placeholder}
             placeholderTextColor={colors.faint}
           />
           <View style={styles.row}>
@@ -52,23 +53,23 @@ function Sheet({ layer, onClose, onSave }: { layer: TextLayer; onClose: () => vo
               }
               style={styles.chip}
             >
-              <Text style={styles.chipText}>{{ left: '左对齐', center: '居中', right: '右对齐' }[style.align]}</Text>
+              <Text style={styles.chipText}>{S.textSheet.align[style.align]}</Text>
             </Pressable>
           </View>
           <View style={styles.row}>
             {TEXT_COLORS.map((c) => (
               <Pressable
                 key={c}
-                accessibilityLabel={`颜色 ${c}`}
+                accessibilityLabel={S.textSheet.color(c)}
                 onPress={() => setStyle({ ...style, color: c })}
                 style={[styles.swatch, { backgroundColor: c }, style.color === c && styles.swatchOn]}
               />
             ))}
           </View>
           <View style={[styles.row, { marginTop: 8 }]}>
-            <Button title="取消" variant="ghost" onPress={onClose} style={{ flex: 1 }} />
+            <Button title={S.common.cancel} variant="ghost" onPress={onClose} style={{ flex: 1 }} />
             <Button
-              title="完成"
+              title={S.common.done}
               onPress={() => onSave({ text, style })}
               disabled={text.trim().length === 0}
               style={{ flex: 2 }}

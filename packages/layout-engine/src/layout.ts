@@ -29,11 +29,17 @@ export type LayoutInput = {
   journalDate: string; // YYYY-MM-DD
   photos: LayoutPhoto[];
   caption: string;
-  /** Pick the n-th best template for this photo set (used by "换个排版"). Wraps around. */
+  /** Pick the n-th best template for this photo set (used by "Shuffle layout"). Wraps around. */
   variant?: number;
   /** Force a template; falls back to ranking if it doesn't fit the photo count. */
   templateId?: string;
   locale?: 'zh' | 'en';
+  /**
+   * Pre-formatted age on journalDate (e.g. "3 months 12 days"). Computed by the
+   * caller from the baby profile; the engine knows nothing about babies.
+   * When present it replaces the weekday in the date line.
+   */
+  ageText?: string;
   now: number;
   createdAt?: number;
   newId: () => string;
@@ -105,7 +111,7 @@ export function layoutPage(input: LayoutInput, measure: MeasureText): LayoutResu
   }
 
   const warnings: LayoutWarning[] = [];
-  layers.push(textLayer(input.newId(), formatJournalDate(input.journalDate, input.locale ?? 'zh'), t.date, measure, 'template').layer);
+  layers.push(textLayer(input.newId(), dateLine(input.journalDate, input.locale ?? 'en', input.ageText), t.date, measure, 'template').layer);
 
   const caption = input.caption.trim();
   if (caption.length === 0) {
@@ -223,6 +229,14 @@ export function formatJournalDate(journalDate: string, locale: 'zh' | 'en'): str
   return locale === 'zh'
     ? `${y}年${m}月${d}日 · ${WEEKDAY_ZH[weekday]}`
     : `${WEEKDAY_EN[weekday]}, ${d} ${MONTH_EN[m - 1]} ${y}`;
+}
+
+/** The page's heading: date plus age when known, otherwise date plus weekday. */
+export function dateLine(journalDate: string, locale: 'zh' | 'en', ageText?: string): string {
+  const age = ageText?.trim();
+  if (!age) return formatJournalDate(journalDate, locale);
+  const [y, m, d] = journalDate.split('-').map(Number) as [number, number, number];
+  return locale === 'zh' ? `${y}年${m}月${d}日 · ${age}` : `${d} ${MONTH_EN[m - 1]} ${y} · ${age}`;
 }
 
 function round(n: number): number {

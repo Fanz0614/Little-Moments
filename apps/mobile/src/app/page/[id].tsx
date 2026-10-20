@@ -16,6 +16,8 @@ import {
 } from '@lm/page-schema';
 import { formatJournalDate, layoutPage, type StickerDef } from '@lm/layout-engine';
 import { loadPage, setPageThumb } from '@/db/repo';
+import { getBaby } from '@/db/babies';
+import { ageText } from '@/baby/derive';
 import { logEvent } from '@/db/events';
 import { deleteIfExists } from '@/photos/files';
 import { EditorCanvas } from '@/editor/EditorCanvas';
@@ -27,23 +29,27 @@ import { skiaMeasureText } from '@/render/text';
 import { usePhotoImages } from '@/render/useImages';
 import { Button } from '@/ui/Button';
 import { colors } from '@/ui/theme';
+import { S } from '@/strings';
 
 export default function PageScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const db = useSQLiteContext();
-  const [doc, setDoc] = useState<PageDocument | null | undefined>(undefined);
+  const [loaded, setLoaded] = useState<{ doc: PageDocument; birthday: string | null } | null | undefined>(undefined);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadPage(db, id)
-      .then(setDoc)
-      .catch((e) => setError(e instanceof Error ? e.message : String(e)));
+    (async () => {
+      const page = await loadPage(db, id);
+      if (!page) return setLoaded(null);
+      const baby = page.babyId ? await getBaby(db, page.babyId) : null;
+      setLoaded({ doc: page.doc, birthday: baby?.birthday ?? null });
+    })().catch((e) => setError(e instanceof Error ? e.message : String(e)));
   }, [db, id]);
 
-  if (error) return <Centered text={`无法打开这一页：${error}`} />;
-  if (doc === undefined) return <Centered spinner />;
-  if (doc === null) return <Centered text="这一页不存在或已被删除" />;
-  return <Editor initial={doc} />;
+  if (error) return <Centered text={S.editor.openFailed(error)} />;
+  if (loaded === undefined) return <Centered spinner />;
+  if (loaded === null) return <Centered text={S.editor.notFound} />;
+  return <Editor initial={loaded.doc} birthday={loaded.birthday} />;
 }
 
 function Centered({ text, spinner }: { text?: string; spinner?: boolean }) {
@@ -54,7 +60,8 @@ function Centered({ text, spinner }: { text?: string; spinner?: boolean }) {
   );
 }
 
-function Editor({ initial }: { initial: PageDocument }) {
+/** `birthday` of the page's baby, used to put the age in the heading when re-laying out. */
+function Editor({ initial, birthday }: { initial: PageDocument; birthday: string | null }) {
   const db = useSQLiteContext();
   const { doc, apply, undo, canUndo, flush, saveError } = useEditor(initial);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -103,7 +110,7 @@ function Editor({ initial }: { initial: PageDocument }) {
     const layer: TextLayer = {
       id: randomUUID(),
       type: 'text',
-      text: '写点什么',
+      text: S.editor.newTextDefault,
       frame: center(300, 60),
       style: { role: 'hand', fontSize: 18, color: colors.ink, align: 'center', bold: false, lineHeight: 1.5 },
       source: 'user',
@@ -167,6 +174,7 @@ function Editor({ initial }: { initial: PageDocument }) {
             journalDate: doc.journalDate,
             photos,
             caption,
+            ageText: birthday ? ageText(birthday, doc.journalDate) : undefined,
             templateId: next,
             now: Date.now(),
             createdAt: doc.createdAt,
@@ -178,18 +186,18 @@ function Editor({ initial }: { initial: PageDocument }) {
         setSelectedId(null);
         void logEvent(db, 'relayout', doc.id, { templateId: next });
       } catch (e) {
-        Alert.alert('换排版失败', e instanceof Error ? e.message : String(e));
+        Alert.alert(S.editor.shuffleFailed, e instanceof Error ? e.message : String(e));
       }
     };
-    Alert.alert('换个排版？', '照片和文字会按新模板重新摆放，手动调整会被覆盖（可以撤销）。', [
-      { text: '取消', style: 'cancel' },
-      { text: '换', onPress: run },
+    Alert.alert(S.editor.shuffleTitle, S.editor.shuffleBody, [
+      { text: S.common.cancel, style: 'cancel' },
+      { text: S.editor.shuffleConfirm, onPress: run },
     ]);
   };
 
   const doExport = async (format: 'pdf' | 'png') => {
     setSelectedId(null);
-    setBusy(format === 'pdf' ? '正在生成 PDF…' : '正在生成图片…');
+    setBusy(format === 'pdf' ? S.editor.exportingPdf : S.editor.exportingPng);
     try {
       await flush();
       const { uri, timing } = format === 'pdf' ? await exportPdf(doc, images) : await exportPng(doc, images);
@@ -199,15 +207,15 @@ function Editor({ initial }: { initial: PageDocument }) {
       await share(uri, format === 'pdf' ? 'application/pdf' : 'image/png');
     } catch (e) {
       setBusy(null);
-      Alert.alert('导出失败', e instanceof Error ? e.message : String(e));
+      Alert.alert(S.editor.exportFailed, e instanceof Error ? e.message : String(e));
     }
   };
 
   const chooseExport = () =>
-    Alert.alert('导出', '高清 300 dpi，A4', [
-      { text: 'PDF（可导入 Goodnotes）', onPress: () => void doExport('pdf') },
-      { text: 'PNG 图片', onPress: () => void doExport('png') },
-      { text: '取消', style: 'cancel' },
+    Alert.alert(S.editor.exportTitle, S.editor.exportBody, [
+      { text: S.editor.exportPdf, onPress: () => void doExport('pdf') },
+      { text: S.editor.exportPng, onPress: () => void doExport('png') },
+      { text: S.common.cancel, style: 'cancel' },
     ]);
 
   const onLayout = (e: LayoutChangeEvent) => {
@@ -221,11 +229,11 @@ function Editor({ initial }: { initial: PageDocument }) {
     <View style={styles.root}>
       <Stack.Screen
         options={{
-          title: formatJournalDate(doc.journalDate, 'zh'),
+          title: formatJournalDate(doc.journalDate, 'en'),
           headerRight: () => (
             <View style={{ flexDirection: 'row', gap: 8 }}>
-              <Button title="撤销" variant="ghost" compact onPress={undo} disabled={!canUndo} />
-              <Button title="导出" compact onPress={chooseExport} disabled={loading || !!busy} />
+              <Button title={S.editor.undo} variant="ghost" compact onPress={undo} disabled={!canUndo} />
+              <Button title={S.editor.export} compact onPress={chooseExport} disabled={loading || !!busy} />
             </View>
           ),
         }}
@@ -253,17 +261,17 @@ function Editor({ initial }: { initial: PageDocument }) {
 
       {(saveError || notice) && (
         <Text style={[styles.notice, saveError && { color: colors.danger }]} onPress={() => setNotice(null)}>
-          {saveError ? `保存失败：${saveError}` : notice}
+          {saveError ? S.editor.saveFailed(saveError) : notice}
         </Text>
       )}
 
       <ScrollView horizontal style={styles.toolbarScroll} contentContainerStyle={styles.toolbar} keyboardShouldPersistTaps="handled">
         {selected ? (
           <>
-            {selected.type === 'text' && <Button title="编辑文字" compact onPress={() => setEditingText(selected)} />}
-            <Button title="置顶" variant="secondary" compact onPress={() => apply((d) => bringToFront(d, selected.id, Date.now()))} />
+            {selected.type === 'text' && <Button title={S.editor.editText} compact onPress={() => setEditingText(selected)} />}
+            <Button title={S.editor.bringToFront} variant="secondary" compact onPress={() => apply((d) => bringToFront(d, selected.id, Date.now()))} />
             <Button
-              title="删除"
+              title={S.common.delete}
               variant="danger"
               compact
               onPress={() => {
@@ -271,17 +279,17 @@ function Editor({ initial }: { initial: PageDocument }) {
                 setSelectedId(null);
               }}
             />
-            <Button title="完成" variant="ghost" compact onPress={() => setSelectedId(null)} />
+            <Button title={S.common.done} variant="ghost" compact onPress={() => setSelectedId(null)} />
           </>
         ) : (
           <>
-            <Button title="＋文字" variant="secondary" compact onPress={addText} />
-            <Button title="＋贴纸" variant="secondary" compact onPress={() => setStickersOpen(true)} />
-            <Button title="换个排版" variant="secondary" compact onPress={relayout} disabled={loading} />
+            <Button title={S.editor.addText} variant="secondary" compact onPress={addText} />
+            <Button title={S.editor.addSticker} variant="secondary" compact onPress={() => setStickersOpen(true)} />
+            <Button title={S.editor.shuffle} variant="secondary" compact onPress={relayout} disabled={loading} />
           </>
         )}
       </ScrollView>
-      <Text style={styles.tip}>{selected ? '拖动移动 · 双指缩放和旋转' : '点一下照片、文字或贴纸来调整'}</Text>
+      <Text style={styles.tip}>{selected ? S.editor.tipSelected : S.editor.tipIdle}</Text>
 
       <TextEditSheet layer={editingText} onClose={() => setEditingText(null)} onSave={saveText} />
       <StickerPicker visible={stickersOpen} onClose={() => setStickersOpen(false)} onPick={addSticker} />
@@ -298,7 +306,7 @@ function Editor({ initial }: { initial: PageDocument }) {
 
 function describeTiming(format: string, t: ExportTiming): string {
   const mb = (t.bytes / 1024 / 1024).toFixed(1);
-  return `${format.toUpperCase()} ${t.width}×${t.height} · 渲染 ${t.renderMs} ms · 编码 ${t.encodeMs} ms · ${mb} MB`;
+  return S.editor.timing(format.toUpperCase(), t.width, t.height, t.renderMs, t.encodeMs, mb);
 }
 
 const styles = StyleSheet.create({

@@ -23,9 +23,9 @@ const PLACEHOLDERS = [
 ];
 
 const CAPTIONS = {
-  3: '今天第一次自己翻身，翻过去以后自己也愣住了，然后对着镜头笑了好久。',
-  4: '外婆来看你啦。你抓着她的手指不放，一下午都没怎么哭。',
-  5: '满月啦！一家人第一次全员合照，你全程都在睡觉。',
+  3: 'Rolled over all by herself today, looked surprised, then laughed at the camera for ages.',
+  4: 'Grandma came to visit. You held on to her finger all afternoon and barely cried.',
+  5: 'One month old! Our first family photo with everyone in it, and you slept through the whole thing.',
 };
 
 (async () => {
@@ -62,7 +62,7 @@ const CAPTIONS = {
     let n = 0;
     const photos = PLACEHOLDERS.slice(0, t.photoCount).map((p) => images.get(p.id).row);
     const { doc, warnings } = layoutPage(
-      { pageId: t.id, journalDate: '2026-10-19', photos, caption: CAPTIONS[t.photoCount], templateId: t.id, now: 1, newId: () => `l${++n}` },
+      { pageId: t.id, journalDate: '2026-10-19', photos, caption: CAPTIONS[t.photoCount], ageText: '11 months 30 days', templateId: t.id, now: 1, newId: () => `l${++n}` },
       skiaMeasureText,
     );
     const img = await drawOffscreen(

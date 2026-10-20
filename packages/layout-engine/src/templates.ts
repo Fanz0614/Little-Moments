@@ -38,8 +38,9 @@ const f = (x: number, y: number, width: number, height: number, rotation = 0): F
 const polaroid = (frame: Frame): PhotoSlot => ({ ...frame, borderWidth: 10, shadow: true, cornerRadius: 0 });
 const clean = (frame: Frame): PhotoSlot => ({ ...frame, borderWidth: 0, shadow: false, cornerRadius: 6 });
 
-const dateSlot = (color = INK, align: TextStyle['align'] = 'left'): TextSlot => ({
-  frame: f(40, 36, 515, 48),
+/** `width` < 515 leaves room for a corner sticker beside the heading. */
+const dateSlot = (color = INK, align: TextStyle['align'] = 'left', width = 515): TextSlot => ({
+  frame: f(40, 36, width, 48),
   style: { role: 'title', fontSize: 28, color, align, bold: true, lineHeight: 1.2 },
   minFontSize: 20,
 });
@@ -54,7 +55,7 @@ export const TEMPLATES: readonly Template[] = [
   // ---------- 3 photos ----------
   {
     id: 't3-scatter',
-    name: '拍立得散落',
+    name: 'Polaroid scatter',
     photoCount: 3,
     background: '#FBF6EE',
     photos: [polaroid(f(44, 112, 320, 240, -3)), polaroid(f(318, 150, 236, 314, 4)), polaroid(f(56, 396, 300, 300, 2))],
@@ -69,11 +70,11 @@ export const TEMPLATES: readonly Template[] = [
   },
   {
     id: 't3-hero',
-    name: '主图 + 两张',
+    name: 'Hero + two',
     photoCount: 3,
     background: '#FFFFFF',
     photos: [clean(f(40, 104, 515, 330)), clean(f(40, 448, 251, 251)), clean(f(304, 448, 251, 251))],
-    date: dateSlot(),
+    date: dateSlot(INK, 'left', 470),
     caption: captionSlot(f(40, 716, 515, 100), 20),
     decor: [{ stickerId: 'star', frame: f(527, 46, 26, 26), color: '#E9B949' }],
   },
@@ -81,7 +82,7 @@ export const TEMPLATES: readonly Template[] = [
   // ---------- 4 photos ----------
   {
     id: 't4-grid',
-    name: '四宫格',
+    name: 'Grid of four',
     photoCount: 4,
     background: '#F6F1EA',
     photos: [clean(f(40, 104, 251, 290)), clean(f(304, 104, 251, 290)), clean(f(40, 408, 251, 290)), clean(f(304, 408, 251, 290))],
@@ -91,7 +92,7 @@ export const TEMPLATES: readonly Template[] = [
   },
   {
     id: 't4-film',
-    name: '主图 + 胶片条',
+    name: 'Hero + film strip',
     photoCount: 4,
     background: '#FBF6EE',
     photos: [clean(f(40, 104, 320, 470)), clean(f(374, 104, 181, 148)), clean(f(374, 265, 181, 148)), clean(f(374, 426, 181, 148))],
@@ -104,7 +105,7 @@ export const TEMPLATES: readonly Template[] = [
   },
   {
     id: 't4-scatter',
-    name: '拍立得四张',
+    name: 'Polaroid four',
     photoCount: 4,
     background: '#F3EEF5',
     photos: [
@@ -125,7 +126,7 @@ export const TEMPLATES: readonly Template[] = [
   // ---------- 5 photos ----------
   {
     id: 't5-mosaic',
-    name: '主图 + 四宫格',
+    name: 'Hero + grid',
     photoCount: 5,
     background: '#FFFFFF',
     photos: [
@@ -135,13 +136,13 @@ export const TEMPLATES: readonly Template[] = [
       clean(f(40, 572, 251, 150)),
       clean(f(304, 572, 251, 150)),
     ],
-    date: dateSlot(),
+    date: dateSlot(INK, 'left', 470),
     caption: captionSlot(f(40, 738, 515, 80), 18),
     decor: [{ stickerId: 'heart', frame: f(525, 46, 26, 26), color: '#E8968C' }],
   },
   {
     id: 't5-scatter',
-    name: '五张散落',
+    name: 'Scatter of five',
     photoCount: 5,
     background: '#FBF6EE',
     photos: [

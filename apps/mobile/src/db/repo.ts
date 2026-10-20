@@ -65,19 +65,29 @@ export async function getPhotos(db: SQLiteDatabase, ids: readonly string[]): Pro
   return new Map(rows.map((r) => [r.id, toPhoto(r)]));
 }
 
-export async function savePage(db: SQLiteDatabase, doc: PageDocument, thumbPath?: string | null): Promise<void> {
+/**
+ * Upsert. `babyId` is only written on insert or when given; later saves from
+ * the editor (which don't know the baby) keep the existing value.
+ */
+export async function savePage(
+  db: SQLiteDatabase,
+  doc: PageDocument,
+  opts: { thumbPath?: string | null; babyId?: string | null } = {},
+): Promise<void> {
   await db.runAsync(
-    `INSERT INTO pages (id, journal_date, doc_json, thumb_path, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)
+    `INSERT INTO pages (id, journal_date, doc_json, thumb_path, baby_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        journal_date = excluded.journal_date,
        doc_json = excluded.doc_json,
        thumb_path = COALESCE(excluded.thumb_path, pages.thumb_path),
+       baby_id = COALESCE(excluded.baby_id, pages.baby_id),
        updated_at = excluded.updated_at`,
     doc.id,
     doc.journalDate,
     JSON.stringify(doc),
-    thumbPath ?? null,
+    opts.thumbPath ?? null,
+    opts.babyId ?? null,
     doc.createdAt,
     doc.updatedAt,
   );
@@ -87,9 +97,12 @@ export async function setPageThumb(db: SQLiteDatabase, pageId: string, thumbPath
   await db.runAsync('UPDATE pages SET thumb_path = ? WHERE id = ?', thumbPath, pageId);
 }
 
-export async function loadPage(db: SQLiteDatabase, id: string): Promise<PageDocument | null> {
-  const row = await db.getFirstAsync<{ doc_json: string }>('SELECT doc_json FROM pages WHERE id = ?', id);
-  return row ? parseStoredPage(row.doc_json) : null;
+export async function loadPage(db: SQLiteDatabase, id: string): Promise<{ doc: PageDocument; babyId: string | null } | null> {
+  const row = await db.getFirstAsync<{ doc_json: string; baby_id: string | null }>(
+    'SELECT doc_json, baby_id FROM pages WHERE id = ?',
+    id,
+  );
+  return row ? { doc: parseStoredPage(row.doc_json), babyId: row.baby_id } : null;
 }
 
 export async function listPages(db: SQLiteDatabase): Promise<PageSummary[]> {
