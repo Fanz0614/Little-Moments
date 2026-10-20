@@ -44,7 +44,7 @@ describe('loadConfig', () => {
   });
   it('applies defaults and overrides', () => {
     const c = loadConfig({ ANTHROPIC_API_KEY: 'k', PER_DEVICE_DAILY_LIMIT: '5' });
-    expect(c).toMatchObject({ model: 'claude-haiku-5-5', budgetMs: 12_000, attemptTimeoutMs: 8_000, perDeviceDailyLimit: 5, globalDailyLimit: 1000 });
+    expect(c).toMatchObject({ model: 'claude-haiku-5-5', budgetMs: 12_000, attemptTimeoutMs: 8_000, perDeviceDailyLimit: 5, globalDailyLimit: 1000, host: '127.0.0.1' });
   });
   it('rejects nonsense numbers', () => {
     expect(() => loadConfig({ ANTHROPIC_API_KEY: 'k', PORT: 'abc' })).toThrow(/PORT/);

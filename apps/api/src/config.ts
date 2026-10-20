@@ -6,6 +6,8 @@ export type Config = {
   anthropicApiKey: string;
   model: string;
   port: number;
+  /** 127.0.0.1 by default; set HOST=0.0.0.0 to let a phone on the same Wi-Fi reach it. */
+  host: string;
   /** Total wall-clock budget for one caption request, all attempts included. */
   budgetMs: number;
   /** Timeout for a single model call (capped by what's left of the budget). */
@@ -24,6 +26,7 @@ export type Config = {
 export const DEFAULTS: Omit<Config, 'anthropicApiKey'> = {
   model: 'claude-haiku-5-5',
   port: 8787,
+  host: '127.0.0.1',
   budgetMs: 12_000,
   attemptTimeoutMs: 8_000,
   minAttemptMs: 1_500,
@@ -55,6 +58,7 @@ export function loadConfig(env: Record<string, string | undefined>): Config {
     anthropicApiKey: key,
     model: env.CAPTION_MODEL?.trim() || DEFAULTS.model,
     port: int('PORT', DEFAULTS.port),
+    host: env.HOST?.trim() || DEFAULTS.host,
     perDeviceDailyLimit: int('PER_DEVICE_DAILY_LIMIT', DEFAULTS.perDeviceDailyLimit),
     globalDailyLimit: int('GLOBAL_DAILY_LIMIT', DEFAULTS.globalDailyLimit),
   };

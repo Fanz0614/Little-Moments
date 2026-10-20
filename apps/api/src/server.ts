@@ -26,7 +26,8 @@ const app = createApp({
   log: (line) => (line.level === 'error' ? console.error : console.log)(JSON.stringify({ ts: new Date().toISOString(), ...line })),
 });
 
-// 0.0.0.0 so a physical device on the same Wi-Fi can reach the Mac, not just the simulator.
-serve({ fetch: app.fetch, port: config.port, hostname: '0.0.0.0' }, (info) => {
-  console.log(`[api] listening on http://localhost:${info.port}  model=${config.model}`);
+// Localhost only by default: the simulator can reach it, other machines on the network can't
+// spend your API quota. HOST=0.0.0.0 opts in to LAN access for testing on a physical device.
+serve({ fetch: app.fetch, port: config.port, hostname: config.host }, (info) => {
+  console.log(`[api] listening on http://${config.host}:${info.port}  model=${config.model}`);
 });
