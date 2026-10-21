@@ -1,5 +1,6 @@
 import React from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Canvas, Group, Path, Skia } from '@shopify/react-native-skia';
 import { STICKERS, type StickerDef } from '@lm/layout-engine';
 import { cssColor } from '@/render/PageContent';
@@ -29,11 +30,12 @@ export function StickerPicker({
   onClose: () => void;
   onPick: (def: StickerDef) => void;
 }) {
+  const insets = useSafeAreaInsets();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: Math.max(36, insets.bottom + 16) }]}>
           <Text style={styles.title}>{S.stickers.title}</Text>
           <View style={styles.grid}>
             {STICKERS.map((s) => (

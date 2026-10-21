@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Alert, FlatList, Image, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { Stack, router, useFocusEffect } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { deletePage, listPages, type PageSummary } from '@/db/repo';
 import { creationStats, type CreationStats } from '@/db/events';
 import { cleanupOrphans } from '@/photos/cleanup';
@@ -16,6 +17,7 @@ import { S } from '@/strings';
 export default function Home() {
   const db = useSQLiteContext();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const [pages, setPages] = useState<PageSummary[] | null>(null);
   const [stats, setStats] = useState<CreationStats | null>(null);
   const { baby } = useBaby();
@@ -74,7 +76,7 @@ export default function Home() {
           data={pages ?? []}
           numColumns={columns}
           keyExtractor={(p) => p.id}
-          contentContainerStyle={{ padding: 20, gap }}
+          contentContainerStyle={{ padding: 20, paddingBottom: 20 + insets.bottom, gap }}
           columnWrapperStyle={{ gap }}
           ListHeaderComponent={baby ? <BabyHeader baby={baby} /> : undefined}
           ListFooterComponent={stats ? <StatsFooter stats={stats} /> : undefined}

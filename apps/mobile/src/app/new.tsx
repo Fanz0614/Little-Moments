@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { randomUUID } from 'expo-crypto';
 import { SUPPORTED_PHOTO_COUNTS, layoutPage } from '@lm/layout-engine';
 import { type PhotoRow, savePage } from '@/db/repo';
@@ -37,6 +38,7 @@ const MAX = Math.max(...SUPPORTED_PHOTO_COUNTS);
 export default function NewPage() {
   const db = useSQLiteContext();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const { baby } = useBaby();
   const [flowId] = useState(() => randomUUID());
   const [photos, setPhotos] = useState<PhotoRow[]>([]);
@@ -137,7 +139,7 @@ export default function NewPage() {
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 48 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         <Text style={styles.step}>{S.newPage.stepPhotos}</Text>
         <Text style={styles.hint}>{hint}</Text>
 

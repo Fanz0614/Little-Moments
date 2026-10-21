@@ -18,6 +18,7 @@ import { formatJournalDate, layoutPage, type StickerDef } from '@lm/layout-engin
 import { loadPage, setPageThumb } from '@/db/repo';
 import { getBaby } from '@/db/babies';
 import { ageText } from '@/baby/derive';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { logEvent } from '@/db/events';
 import { recordAiCaptionExport } from '@/ai/metrics';
 import { deleteIfExists } from '@/photos/files';
@@ -64,6 +65,8 @@ function Centered({ text, spinner }: { text?: string; spinner?: boolean }) {
 /** `birthday` of the page's baby, used to put the age in the heading when re-laying out. */
 function Editor({ initial, birthday }: { initial: PageDocument; birthday: string | null }) {
   const db = useSQLiteContext();
+  // iPhone home indicator / Android edge-to-edge navigation bar.
+  const insets = useSafeAreaInsets();
   const { doc, apply, undo, canUndo, flush, saveError } = useEditor(initial);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [area, setArea] = useState<{ w: number; h: number } | null>(null);
@@ -295,7 +298,7 @@ function Editor({ initial, birthday }: { initial: PageDocument; birthday: string
           </>
         )}
       </ScrollView>
-      <Text style={styles.tip}>{selected ? S.editor.tipSelected : S.editor.tipIdle}</Text>
+      <Text style={[styles.tip, { paddingBottom: Math.max(18, insets.bottom + 6) }]}>{selected ? S.editor.tipSelected : S.editor.tipIdle}</Text>
 
       <TextEditSheet layer={editingText} onClose={() => setEditingText(null)} onSave={saveText} />
       <StickerPicker visible={stickersOpen} onClose={() => setStickersOpen(false)} onPick={addSticker} />

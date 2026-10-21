@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { FontRole, TextLayer } from '@lm/page-schema';
 import { Button } from '@/ui/Button';
 import { TEXT_COLORS, colors, radius } from '@/ui/theme';
@@ -22,12 +23,13 @@ export function TextEditSheet(props: { layer: TextLayer | null; onClose: () => v
 function Sheet({ layer, onClose, onSave }: { layer: TextLayer; onClose: () => void; onSave: (edit: TextEdit) => void }) {
   const [text, setText] = useState(layer.text);
   const [style, setStyle] = useState<TextLayer['style']>(layer.style);
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: Math.max(32, insets.bottom + 16) }]}>
           <TextInput
             value={text}
             onChangeText={setText}

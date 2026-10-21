@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Alert, Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { docUri } from '@/photos/files';
 import { pickAvatar } from '@/photos/avatar';
 import { Button } from '@/ui/Button';
@@ -31,6 +32,7 @@ export function BabyForm({
   const [errors, setErrors] = useState<FieldErrors>({});
   const [saving, setSaving] = useState(false);
   const today = useToday();
+  const insets = useSafeAreaInsets();
 
   const set = <K extends keyof BabyInput>(key: K, value: BabyInput[K]) => {
     setForm((f) => ({ ...f, [key]: value }));
@@ -71,7 +73,7 @@ export function BabyForm({
 
   return (
     <KeyboardAvoidingView style={styles.root} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+      <ScrollView contentContainerStyle={[styles.content, { paddingBottom: 48 + insets.bottom }]} keyboardShouldPersistTaps="handled">
         {intro ? <Text style={styles.intro}>{intro}</Text> : null}
 
         <View style={styles.avatarRow}>
