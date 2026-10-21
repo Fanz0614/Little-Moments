@@ -96,6 +96,8 @@ export function CaptionAssist({
   };
 
   const terms = phase.k === 'preview' ? warningTerms(phase.warnings) : [];
+  // While a suggestion is on screen, Try again does the same job.
+  const helpVisible = showHelp && phase.k !== 'preview';
 
   return (
     <View style={styles.wrap}>
@@ -112,9 +114,10 @@ export function CaptionAssist({
         ))}
       </View>
 
-      {/* Hidden right after a suggestion is used; back once the user types in the box. */}
+      {/* Hidden while a suggestion is shown (Try again covers it) and right after one is
+          used, until the user types in the box again. */}
       <View style={styles.row}>
-        {showHelp && (
+        {helpVisible && (
           <Button
             title={phase.k === 'loading' ? S.newPage.ai.writing : S.newPage.ai.helpMe}
             variant="secondary"
@@ -123,7 +126,7 @@ export function CaptionAssist({
             disabled={!hasWords || phase.k === 'loading'}
           />
         )}
-        {showHelp && !hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
+        {helpVisible && !hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
         {accepted && (
           <>
             <Text style={styles.small}>{S.newPage.ai.usingAi}</Text>
