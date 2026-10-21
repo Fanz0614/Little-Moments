@@ -34,8 +34,20 @@ describe('deterministic checks', () => {
       mentionsPhotos: true,
       firstPerson: true,
       copiedExample: false,
+      missing: [],
     });
     expect(deterministicChecks(byId('empty'), { title: 'Ava at 2 weeks', caption: '' })).toMatchObject({ emptyCaptionOk: true, copiedExample: true });
+  });
+
+  it('lists key details the output dropped', () => {
+    expect(deterministicChecks(byId('long-beach'), { title: "Theo's beach day", caption: 'Theo filled a bucket for an hour.' }).missing).toEqual(['grand']);
+    expect(deterministicChecks(byId('dad-bedtime'), { title: 'Bedtime', caption: 'Daddy did bedtime.' }).missing).toEqual([]);
+  });
+
+  it('allows first person the note used, flags first person it did not', () => {
+    const out = (caption: string) => ({ title: 'Movie night', caption });
+    expect(deterministicChecks(byId('asleep-on-chest'), out('Hugo fell asleep on my chest.')).firstPerson).toBe(false);
+    expect(deterministicChecks(byId('dog-lick'), out('We watched the dog lick Luna.')).firstPerson).toBe(true);
   });
 
   it('has no expectation for ordinary cases', () => {
@@ -81,7 +93,7 @@ describe('summarize', () => {
     latencyMs: 1000,
     output: { title: 't', caption: 'c' },
     warnings: [],
-    checks: { emptyCaptionOk: null, mentionsPhotos: false, firstPerson: false, copiedExample: false },
+    checks: { emptyCaptionOk: null, mentionsPhotos: false, firstPerson: false, copiedExample: false, missing: [] },
     claims: [],
     ...over,
   });
@@ -91,12 +103,13 @@ describe('summarize', () => {
       row({ claims: [{ text: 'with her family', kind: 'person' }], warnings: [{ code: 'possible_fabrication', terms: ['family'] }] }), // caught
       row({ claims: [{ text: 'while Zoe napped', kind: 'event' }] }), // missed
       row({ claims: [{ text: 'so proud', kind: 'feeling' }] }), // feelings only: not added
-      row({ warnings: [{ code: 'first_person', terms: ['me'] }] }), // extra
+      row({ warnings: [{ code: 'possible_fabrication', terms: ['first'] }] }), // extra
+      row({ warnings: [{ code: 'first_person', terms: ['me'] }] }), // voice check: not compared with the judge
       row({ claims: null, judgeError: 'timeout' }),
       row({ status: 'fallback', reason: 'timeout', claims: null, latencyMs: 12000 }),
     ]);
-    expect(s.okRate).toBe('83% (5/6)');
-    expect(s.addedContentRate).toBe('50% (2/4)');
+    expect(s.okRate).toBe('86% (6/7)');
+    expect(s.addedContentRate).toBe('40% (2/5)');
     expect(s.detector).toEqual({ caught: 1, missed: 1, extra: 1 });
     expect(s.claimsByKind).toEqual({ person: 1, event: 1, feeling: 1 });
     expect(s.judgeErrors).toBe(1);

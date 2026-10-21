@@ -106,6 +106,10 @@ export default function NewPage() {
 
   const cols = width >= 700 ? 5 : 3;
   const tile = (width - 20 * 2 - 8 * (cols - 1)) / cols;
+  // One or two words gives the AI nothing to work with, and it is told not to invent detail.
+  const wordCount = caption.trim().split(/\s+/).filter(Boolean).length;
+  const showNudge = wordCount > 0 && wordCount < 3;
+
   const hint = useMemo(() => {
     if (photos.length === 0) return S.newPage.hintEmpty(MIN, MAX, MAX_PICK);
     if (selected.length < MIN) return S.newPage.hintMore(MIN - selected.length);
@@ -155,9 +159,11 @@ export default function NewPage() {
           placeholder={S.newPage.captionPlaceholder}
           placeholderTextColor={colors.faint}
           multiline
-          maxLength={400}
+          // Same limit as the caption API's note (LIMITS.note in @lm/ai-contracts).
+          maxLength={300}
           style={[styles.input, { minHeight: 96, textAlignVertical: 'top' }]}
         />
+        {showNudge && <Text style={styles.small}>{S.newPage.captionNudge}</Text>}
 
         <Text style={[styles.step, { marginTop: 20 }]}>{S.newPage.date}</Text>
         <TextInput

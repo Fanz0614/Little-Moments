@@ -84,6 +84,7 @@ function printRow(note: string, r: EvalRow) {
   if (r.checks.mentionsPhotos) issues.push('MENTIONS PHOTOS');
   if (r.checks.firstPerson) issues.push('FIRST PERSON');
   if (r.checks.copiedExample) issues.push('COPIED EXAMPLE');
+  if (r.checks.missing.length) issues.push(`MISSING ${r.checks.missing.join(', ')}`);
   if (r.judgeError) issues.push(`judge error: ${r.judgeError}`);
 
   console.log(`\n[${r.caseId}] ${r.status} ${r.latencyMs} ms${issues.length ? '' : '  ✓'}`);
