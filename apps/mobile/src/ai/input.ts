@@ -16,16 +16,9 @@ export function buildCaptionInput(baby: Pick<Baby, 'nickname' | 'birthday' | 'ge
   };
 }
 
-/** Starters for the writing prompts under the note box. Tapping one appends its text. */
-export const WRITING_PROMPTS: readonly { label: string; starter: string }[] = [
-  { label: 'What happened?', starter: 'Today ' },
-  { label: 'Who was there?', starter: 'With ' },
-  { label: 'What made you smile?', starter: 'Made me smile: ' },
-];
-
-export function appendStarter(note: string, starter: string): string {
-  const trimmed = note.trimEnd();
-  if (trimmed === '') return starter;
-  const sep = /[.!?]$/.test(trimmed) ? ' ' : '. ';
-  return `${trimmed}${sep}${starter}`;
-}
+/**
+ * Writing prompts shown as chips under the note box. They only guide: tapping
+ * one focuses the box and shows the question; it never writes into the note
+ * (inserting "Today " for "What happened?" put words in the user's mouth).
+ */
+export const WRITING_PROMPTS: readonly string[] = ['What happened?', 'Who was there?', 'What made you smile?'];

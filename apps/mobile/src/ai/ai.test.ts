@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { requestCaption, warningTerms } from './client';
 import { editDistance, editRatio } from './editDistance';
-import { appendStarter, buildCaptionInput } from './input';
+import { buildCaptionInput } from './input';
 
 const ids = { requestId: '7d3c8a0e-2f4b-4c1d-9e8f-1a2b3c4d5e6f', deviceId: '0b6f2a7c-6a39-4b7e-9c55-3f1d2e8a9b10' };
 const input = { nickname: 'Noah', ageText: '9 months', note: 'pulled himself up on the couch', photoCount: 3, pronoun: 'he' as const };
@@ -20,17 +20,6 @@ describe('buildCaptionInput', () => {
 
   it('maps unspecified gender to "they"', () => {
     expect(buildCaptionInput({ nickname: 'Kai', birthday: '2026-03-01', gender: 'unspecified' }, '2026-10-01', 'x', 3).pronoun).toBe('they');
-  });
-});
-
-describe('appendStarter', () => {
-  it.each([
-    ['', 'Today ', 'Today '],
-    ['park', 'With ', 'park. With '],
-    ['a quiet day.', 'With ', 'a quiet day. With '],
-    ['sleepy   ', 'Today ', 'sleepy. Today '],
-  ])('%j + %j -> %j', (note, starter, expected) => {
-    expect(appendStarter(note, starter)).toBe(expected);
   });
 });
 

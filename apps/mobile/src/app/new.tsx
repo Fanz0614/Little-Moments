@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -49,6 +49,9 @@ export default function NewPage() {
   const [aiChoice, setAiChoice] = useState<AcceptedCaption | null>(null);
   const [wordsBeforeAi, setWordsBeforeAi] = useState('');
   const today = useToday();
+  const captionInput = useRef<React.ComponentRef<typeof TextInput>>(null);
+  // The writing prompt last tapped, shown as guidance (never inserted into the note).
+  const [prompt, setPrompt] = useState<string | null>(null);
 
   useEffect(() => {
     void logEvent(db, 'flow_started', null, { flowId });
@@ -166,19 +169,24 @@ export default function NewPage() {
 
         <Text style={[styles.step, { marginTop: 28 }]}>{S.newPage.stepCaption}</Text>
         <TextInput
+          ref={captionInput}
           value={caption}
           onChangeText={setCaption}
-          placeholder={S.newPage.captionPlaceholder}
+          placeholder={prompt ?? S.newPage.captionPlaceholder}
           placeholderTextColor={colors.faint}
           multiline
           // Same limit as the caption API's note (LIMITS.note in @lm/ai-contracts).
           maxLength={300}
           style={[styles.input, { minHeight: 96, textAlignVertical: 'top' }]}
         />
+        {prompt && caption.trim() !== '' && <Text style={styles.small}>{prompt}</Text>}
         {showNudge && <Text style={styles.small}>{S.newPage.captionNudge}</Text>}
         <CaptionAssist
           note={caption}
-          onChangeNote={setCaption}
+          onPrompt={(q) => {
+            setPrompt(q);
+            captionInput.current?.focus();
+          }}
           flowId={flowId}
           accepted={aiChoice !== null}
           buildInput={() =>
@@ -188,7 +196,8 @@ export default function NewPage() {
               : null
           }
           onUse={(c) => {
-            setWordsBeforeAi(caption);
+            // Undo always returns to the user's own words, even after several suggestions.
+            if (!aiChoice) setWordsBeforeAi(caption);
             setCaption(c.output.caption);
             setAiChoice(c);
           }}

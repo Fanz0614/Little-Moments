@@ -9,7 +9,7 @@ import { colors, radius } from '@/ui/theme';
 import { S } from '@/strings';
 import { requestCaption, warningTerms } from './client';
 import { getDeviceId } from './deviceId';
-import { WRITING_PROMPTS, appendStarter } from './input';
+import { WRITING_PROMPTS } from './input';
 
 export type AcceptedCaption = { requestId: string; output: CaptionOutput };
 
@@ -26,7 +26,7 @@ type Phase =
  */
 export function CaptionAssist({
   note,
-  onChangeNote,
+  onPrompt,
   buildInput,
   flowId,
   accepted,
@@ -34,10 +34,12 @@ export function CaptionAssist({
   onUndo,
 }: {
   note: string;
-  onChangeNote: (note: string) => void;
+  /** A writing prompt was tapped: the parent focuses the box and shows the question. */
+  onPrompt: (question: string) => void;
   /** null when there's nothing to send yet (empty note). */
   buildInput: () => CaptionInput | null;
   flowId: string;
+  /** An AI suggestion is in the box; Undo goes back to the user's own words. */
   accepted: boolean;
   onUse: (c: AcceptedCaption) => void;
   onUndo: () => void;
@@ -95,37 +97,37 @@ export function CaptionAssist({
   return (
     <View style={styles.wrap}>
       <View style={styles.chips}>
-        {WRITING_PROMPTS.map((p) => (
+        {WRITING_PROMPTS.map((q) => (
           <Pressable
-            key={p.label}
-            onPress={() => onChangeNote(appendStarter(note, p.starter))}
+            key={q}
+            onPress={() => onPrompt(q)}
             style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
             accessibilityRole="button"
           >
-            <Text style={styles.chipText}>{p.label}</Text>
+            <Text style={styles.chipText}>{q}</Text>
           </Pressable>
         ))}
       </View>
 
-      {accepted ? (
-        <View style={styles.row}>
-          <Text style={styles.small}>{S.newPage.ai.usingAi}</Text>
-          <Pressable onPress={onUndo} accessibilityRole="button" hitSlop={8}>
-            <Text style={styles.link}>{S.newPage.ai.undo}</Text>
-          </Pressable>
-        </View>
-      ) : (
-        <View style={styles.row}>
-          <Button
-            title={phase.k === 'loading' ? S.newPage.ai.writing : S.newPage.ai.helpMe}
-            variant="secondary"
-            compact
-            onPress={() => void ask()}
-            disabled={!hasWords || phase.k === 'loading'}
-          />
-          {!hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
-        </View>
-      )}
+      {/* Always available, also after a suggestion was used: the user may edit and ask again. */}
+      <View style={styles.row}>
+        <Button
+          title={phase.k === 'loading' ? S.newPage.ai.writing : S.newPage.ai.helpMe}
+          variant="secondary"
+          compact
+          onPress={() => void ask()}
+          disabled={!hasWords || phase.k === 'loading'}
+        />
+        {!hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
+        {accepted && (
+          <>
+            <Text style={styles.small}>{S.newPage.ai.usingAi}</Text>
+            <Pressable onPress={onUndo} accessibilityRole="button" hitSlop={8}>
+              <Text style={styles.link}>{S.newPage.ai.undo}</Text>
+            </Pressable>
+          </>
+        )}
+      </View>
 
       {phase.k === 'preview' && (
         <View style={styles.card}>
