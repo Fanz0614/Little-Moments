@@ -48,6 +48,10 @@ export default function NewPage() {
   // Set when the user chose an AI suggestion; their own words are kept for Undo.
   const [aiChoice, setAiChoice] = useState<AcceptedCaption | null>(null);
   const [wordsBeforeAi, setWordsBeforeAi] = useState('');
+  // Help me write is hidden right after a suggestion is used and comes back as
+  // soon as the user types in the box. It tracks interaction, not content: typing
+  // and then deleting back to the same text still counts.
+  const [typedSinceAi, setTypedSinceAi] = useState(false);
   const today = useToday();
   const captionInput = useRef<React.ComponentRef<typeof TextInput>>(null);
   // The writing prompt last tapped, shown as guidance (never inserted into the note).
@@ -171,7 +175,10 @@ export default function NewPage() {
         <TextInput
           ref={captionInput}
           value={caption}
-          onChangeText={setCaption}
+          onChangeText={(text) => {
+            setCaption(text);
+            setTypedSinceAi(true);
+          }}
           placeholder={prompt ?? S.newPage.captionPlaceholder}
           placeholderTextColor={colors.faint}
           multiline
@@ -189,6 +196,7 @@ export default function NewPage() {
           }}
           flowId={flowId}
           accepted={aiChoice !== null}
+          showHelp={aiChoice === null || typedSinceAi}
           buildInput={() =>
             baby && caption.trim()
               ? // Before photos are picked there is no journal date yet: age as of today.
@@ -198,8 +206,9 @@ export default function NewPage() {
           onUse={(c) => {
             // Undo always returns to the user's own words, even after several suggestions.
             if (!aiChoice) setWordsBeforeAi(caption);
-            setCaption(c.output.caption);
+            setCaption(c.output.caption); // programmatic: does not fire onChangeText
             setAiChoice(c);
+            setTypedSinceAi(false);
           }}
           onUndo={() => {
             setCaption(wordsBeforeAi);

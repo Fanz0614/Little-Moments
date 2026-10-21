@@ -30,6 +30,7 @@ export function CaptionAssist({
   buildInput,
   flowId,
   accepted,
+  showHelp,
   onUse,
   onUndo,
 }: {
@@ -41,6 +42,8 @@ export function CaptionAssist({
   flowId: string;
   /** An AI suggestion is in the box; Undo goes back to the user's own words. */
   accepted: boolean;
+  /** False right after a suggestion is used, until the user types in the box again. */
+  showHelp: boolean;
   onUse: (c: AcceptedCaption) => void;
   onUndo: () => void;
 }) {
@@ -109,16 +112,18 @@ export function CaptionAssist({
         ))}
       </View>
 
-      {/* Always available, also after a suggestion was used: the user may edit and ask again. */}
+      {/* Hidden right after a suggestion is used; back once the user types in the box. */}
       <View style={styles.row}>
-        <Button
-          title={phase.k === 'loading' ? S.newPage.ai.writing : S.newPage.ai.helpMe}
-          variant="secondary"
-          compact
-          onPress={() => void ask()}
-          disabled={!hasWords || phase.k === 'loading'}
-        />
-        {!hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
+        {showHelp && (
+          <Button
+            title={phase.k === 'loading' ? S.newPage.ai.writing : S.newPage.ai.helpMe}
+            variant="secondary"
+            compact
+            onPress={() => void ask()}
+            disabled={!hasWords || phase.k === 'loading'}
+          />
+        )}
+        {showHelp && !hasWords && <Text style={styles.small}>{S.newPage.ai.needWords}</Text>}
         {accepted && (
           <>
             <Text style={styles.small}>{S.newPage.ai.usingAi}</Text>
