@@ -47,9 +47,9 @@ export const S = {
     hintMore: (n: number) => `Select ${n} more`,
     hintSelected: (n: number) => `${n} selected · tap a photo to deselect or swap`,
     stepCaption: '2 · What happened today?',
-    captionPlaceholder: 'Say a few words about today: what happened, who was there, how it felt',
+    captionPlaceholder: 'A few words about today…',
     /** Shown under the box while the note is only a word or two (the AI won't pad it out). */
-    captionNudge: 'A few more words help: who was there, what made it special?',
+    captionNudge: 'Add a little more?',
     date: 'Date',
     dateHint: 'Defaults to the day the photos were taken',
     create: 'Create page',
