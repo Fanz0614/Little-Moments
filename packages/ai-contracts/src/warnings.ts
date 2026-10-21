@@ -3,21 +3,32 @@ import { LIMITS, charCount } from './limits';
 import type { CaptionOutput } from './output';
 
 /**
- * Non-fatal findings. They never block the result; `possible_fabrication` is
- * shown to the user (and saved with the text layer) until they edit or confirm.
+ * Non-fatal findings. They never block the result; `possible_fabrication` and
+ * `first_person` are shown to the user (and saved with the text layer) until
+ * they edit or confirm.
  */
 export const Warning = z.discriminatedUnion('code', [
+  /** Milestones or people the note never mentioned. */
   z.object({ code: z.literal('possible_fabrication'), terms: z.array(z.string()).min(1) }),
+  /** I / me / we ... that the note did not use: the caption speaks in the parent's voice. */
+  z.object({ code: z.literal('first_person'), terms: z.array(z.string()).min(1) }),
   z.object({ code: z.literal('long_caption'), length: z.number().int() }),
 ]);
 export type Warning = z.infer<typeof Warning>;
 
+type Rule = { term: string; re: RegExp; allowIf?: RegExp };
+
 /**
- * Milestone wording. If the output uses one of these and the user's note does
- * not, the model probably invented an event. Each pattern is matched against
- * both texts, so word forms on either side are compared like for like.
+ * Each pattern is matched against both texts, so word forms on either side are
+ * compared like for like: flagged when the output matches and the note doesn't.
  */
-const MILESTONES: readonly { term: string; re: RegExp }[] = [
+function unsupported(rules: readonly Rule[], output: CaptionOutput, note: string): string[] {
+  const text = `${output.title}\n${output.caption}`;
+  return rules.filter((r) => r.re.test(text) && !r.re.test(note) && !r.allowIf?.test(note)).map((r) => r.term);
+}
+
+/** Milestone wording: if the output uses one and the note does not, the model probably invented an event. */
+const MILESTONES: readonly Rule[] = [
   { term: 'first', re: /\bfirst\b/i },
   { term: 'milestone', re: /\bmilestones?\b/i },
   { term: 'rolled over', re: /\broll(?:s|ed|ing)?\s+over\b/i },
@@ -38,15 +49,48 @@ const MILESTONES: readonly { term: string; re: RegExp }[] = [
 // Deliberately not listed: "words", "steps" (too many idioms: "no words", "next steps").
 // "first word" / "first steps" are caught by "first".
 
+/**
+ * People who weren't in the note ("with her family", "her mom finished her
+ * book"). "mama" / "dada" / "papa" are left to the speaking rule
+ * (usually a baby's word, not a person in the scene). Mum and dad are separate: the model must not guess which parent
+ * wrote the note. "We / us / our" in the note does imply the parents were there.
+ */
+const PEOPLE: readonly Rule[] = [
+  { term: 'family', re: /\bfamil(?:y|ies)\b/i },
+  { term: 'parents', re: /\bparents?\b/i, allowIf: /\b(?:we|us|our)\b/i },
+  { term: 'mum', re: /\b(?:mum|mummy|mumma|mom|mommy|mother)s?\b/i },
+  { term: 'dad', re: /\b(?:dad|daddy|father)s?\b/i },
+  { term: 'grandparent', re: /\b(?:grand(?:ma|mother|mum|mom|pa|father|dad|parent)s?|nana|nanna|granny|gran|nonna|nonno|oma|opa)\b/i },
+  { term: 'sibling', re: /\b(?:brother|sister|sibling|twin)s?\b/i },
+  { term: 'friend', re: /\bfriends?\b/i },
+  { term: 'aunt or uncle', re: /\b(?:aunt|aunty|auntie|uncle)s?\b/i },
+  { term: 'cousin', re: /\bcousins?\b/i },
+];
+
+/** Captions are written about the baby in the third person (prompt rule). */
+const FIRST_PERSON: readonly Rule[] = ['I', 'me', 'my', 'mine', 'myself', 'we', 'us', 'our', 'ours', 'ourselves'].map(
+  (w) => ({ term: w, re: new RegExp(`\\b${w}\\b`, 'i') }),
+);
+
 export function findFabricatedMilestones(output: CaptionOutput, note: string): string[] {
-  const text = `${output.title}\n${output.caption}`;
-  return MILESTONES.filter((m) => m.re.test(text) && !m.re.test(note)).map((m) => m.term);
+  return unsupported(MILESTONES, output, note);
+}
+
+export function findFabricatedPeople(output: CaptionOutput, note: string): string[] {
+  return unsupported(PEOPLE, output, note);
+}
+
+/** First-person words in the output that the note itself did not use. */
+export function findFirstPerson(output: CaptionOutput, note: string): string[] {
+  return unsupported(FIRST_PERSON, output, note);
 }
 
 export function semanticWarnings(output: CaptionOutput, note: string): Warning[] {
   const warnings: Warning[] = [];
-  const terms = findFabricatedMilestones(output, note);
+  const terms = [...findFabricatedMilestones(output, note), ...findFabricatedPeople(output, note)];
   if (terms.length > 0) warnings.push({ code: 'possible_fabrication', terms });
+  const voice = findFirstPerson(output, note);
+  if (voice.length > 0) warnings.push({ code: 'first_person', terms: voice });
   const length = charCount(output.caption);
   if (length > LIMITS.captionSoft) warnings.push({ code: 'long_caption', length });
   return warnings;

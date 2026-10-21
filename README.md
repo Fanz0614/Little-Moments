@@ -82,7 +82,8 @@ npx eas-cli@latest build -p android --profile preview    # 首次会问是否创
 ```bash
 cd apps/api
 cp .env.example .env        # 填入 ANTHROPIC_API_KEY；.env 已被 gitignore
-pnpm smoke                  # 真实调用 3 次：验证 API 接受我们的 JSON Schema，并看延迟
+pnpm smoke                  # 真实调用 8 个用例：验证 API 接受我们的 JSON Schema，并看延迟
+pnpm eval                   # 30 个固定用例 + LLM 评审：统计「添加内容率」，用来对比提示词版本
 pnpm dev                    # http://localhost:8787 ，模拟器可直接访问
 ```
 

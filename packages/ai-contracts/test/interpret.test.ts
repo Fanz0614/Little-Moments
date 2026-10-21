@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { CaptionOutput, findFabricatedMilestones, interpret, isRetryable, normalizeOutput } from '../src';
+import {
+  CaptionOutput,
+  findFabricatedMilestones,
+  findFabricatedPeople,
+  findFirstPerson,
+  interpret,
+  isRetryable,
+  normalizeOutput,
+  semanticWarnings,
+} from '../src';
 import { FIXTURES, NOTE } from './fixtures';
 
 const run = (name: keyof typeof FIXTURES, note = NOTE) => interpret(FIXTURES[name], note);
@@ -135,5 +144,46 @@ describe('normalizeOutput', () => {
       const r = run(name);
       if (r.ok) expect(CaptionOutput.safeParse(r.output).success, name).toBe(true);
     }
+  });
+});
+
+describe('fabrication check: people', () => {
+  const out = (caption: string) => ({ title: 'Ruby', caption });
+  it.each([
+    // From the caption@2 smoke run
+    ['Ruby spent some time at the park with her family.', 'park', ['family']],
+    ['While Zoe napped, her mom finally finished her book.', 'rainy day, I finally finished my book', ['mum']],
+    // Supported by the note
+    ['Grandma came over and Ruby loved it.', 'nana came over', []],
+    ['Theo went to the beach with both grandparents.', 'beach with both grandparents', []],
+    ['Ruby and her parents went to the park.', 'we went to the park', []],
+    ['Dad gave Ruby her bath.', 'daddy did bath time', []],
+    // Wrong parent: the note says dad, the output says mum
+    ['Mum gave Ruby her bath.', 'daddy did bath time', ['mum']],
+    ['Ruby played with her big sister and a friend.', 'played on the rug', ['sibling', 'friend']],
+    // Baby words are the speaking rule's business, not people
+    ['Ruby said mama!', 'a quiet day', []],
+  ] as const)('%s (note: %s) -> %o', (caption, note, terms) => {
+    expect(findFabricatedPeople(out(caption), note)).toEqual(terms);
+  });
+
+  it('reports milestones and people in one possible_fabrication warning', () => {
+    expect(semanticWarnings(out('Her first visit from Grandma.'), 'quiet morning')).toEqual([
+      { code: 'possible_fabrication', terms: ['first', 'grandparent'] },
+    ]);
+  });
+});
+
+describe('first-person voice check', () => {
+  const out = (caption: string) => ({ title: 'A rainy day', caption });
+  it('flags I / me / we the note did not use', () => {
+    expect(findFirstPerson(out('Zoe kept me company while we read.'), 'rainy day, finished the book')).toEqual(['me', 'we']);
+    expect(semanticWarnings(out('Zoe kept me company.'), 'rainy day')).toEqual([{ code: 'first_person', terms: ['me'] }]);
+  });
+
+  it('does not flag words the note itself used, or words that merely contain them', () => {
+    expect(findFirstPerson(out('I finally finished my book.'), 'I finally finished my book')).toEqual([]);
+    expect(findFirstPerson(out('Usually Ruby is a mighty sleeper, in our opinion... not.'), 'nap')).toEqual(['our']);
+    expect(findFirstPerson(out('Musical time with Ruby.'), 'music')).toEqual([]);
   });
 });

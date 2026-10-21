@@ -54,7 +54,12 @@ function strip(node: Json): Json {
   return node;
 }
 
-/** The schema passed as `output_config.format.schema`. */
+/** Any Zod schema as a JSON Schema the structured-outputs API accepts. */
+export function toProviderJsonSchema(schema: z.ZodType): Json {
+  return strip(z.toJSONSchema(schema) as Json);
+}
+
+/** The schema passed as `output_config.format.schema` for captions. */
 export function providerJsonSchema(): Json {
-  return strip(z.toJSONSchema(CaptionOutput) as Json);
+  return toProviderJsonSchema(CaptionOutput);
 }
