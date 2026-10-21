@@ -19,6 +19,7 @@ import { loadPage, setPageThumb } from '@/db/repo';
 import { getBaby } from '@/db/babies';
 import { ageText } from '@/baby/derive';
 import { logEvent } from '@/db/events';
+import { recordAiCaptionExport } from '@/ai/metrics';
 import { deleteIfExists } from '@/photos/files';
 import { EditorCanvas } from '@/editor/EditorCanvas';
 import { StickerPicker } from '@/editor/StickerPicker';
@@ -160,7 +161,10 @@ function Editor({ initial, birthday }: { initial: PageDocument; birthday: string
         const row = images.get(l.photoId)?.row;
         return row ? [{ id: row.id, width: row.width, height: row.height }] : [];
       });
-      const caption = doc.layers.find((l): l is TextLayer => l.type === 'text' && l.source === 'user')?.text ?? '';
+      // The caption is the first non-template text; keep its provenance across layouts.
+      const captionLayer = doc.layers.find((l): l is TextLayer => l.type === 'text' && l.source !== 'template');
+      const caption = captionLayer?.text ?? '';
+      const captionSource = captionLayer?.source === 'ai-draft' ? 'ai-draft' : 'user';
       try {
         const probe = layoutPage(
           { pageId: doc.id, journalDate: doc.journalDate, photos, caption, now: Date.now(), newId: randomUUID },
@@ -174,6 +178,7 @@ function Editor({ initial, birthday }: { initial: PageDocument; birthday: string
             journalDate: doc.journalDate,
             photos,
             caption,
+            captionSource,
             ageText: birthday ? ageText(birthday, doc.journalDate) : undefined,
             templateId: next,
             now: Date.now(),
@@ -203,6 +208,7 @@ function Editor({ initial, birthday }: { initial: PageDocument; birthday: string
       const { uri, timing } = format === 'pdf' ? await exportPdf(doc, images) : await exportPng(doc, images);
       setNotice(describeTiming(format, timing));
       await logEvent(db, 'page_exported', doc.id, { format, ...timing });
+      await recordAiCaptionExport(db, doc);
       setBusy(null);
       await share(uri, format === 'pdf' ? 'application/pdf' : 'image/png');
     } catch (e) {

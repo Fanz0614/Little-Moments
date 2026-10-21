@@ -6,6 +6,7 @@ import {
   insetFrame,
   type Layer,
   type PageDocument,
+  type TextSource,
   type TextStyle,
 } from '@lm/page-schema';
 import { templatesFor, type PhotoSlot, type Template, type TextSlot } from './templates';
@@ -29,6 +30,8 @@ export type LayoutInput = {
   journalDate: string; // YYYY-MM-DD
   photos: LayoutPhoto[];
   caption: string;
+  /** Provenance of the caption text: 'ai-draft' when the user chose an AI caption. */
+  captionSource?: 'user' | 'ai-draft';
   /** Pick the n-th best template for this photo set (used by "Shuffle layout"). Wraps around. */
   variant?: number;
   /** Force a template; falls back to ranking if it doesn't fit the photo count. */
@@ -117,7 +120,7 @@ export function layoutPage(input: LayoutInput, measure: MeasureText): LayoutResu
   if (caption.length === 0) {
     warnings.push({ kind: 'empty-caption' });
   } else {
-    const fitted = textLayer(input.newId(), caption, t.caption, measure, 'user');
+    const fitted = textLayer(input.newId(), caption, t.caption, measure, input.captionSource ?? 'user');
     layers.push(fitted.layer);
     if (fitted.overflow) warnings.push(fitted.overflow);
   }
@@ -201,7 +204,7 @@ export function fitText(
   return { style: { ...slot.style, fontSize: size }, height, overflow: height > slot.frame.height };
 }
 
-function textLayer(id: string, text: string, slot: TextSlot, measure: MeasureText, source: 'user' | 'template') {
+function textLayer(id: string, text: string, slot: TextSlot, measure: MeasureText, source: TextSource) {
   const fitted = fitText(text, slot, measure);
   const layer: Layer = {
     id,

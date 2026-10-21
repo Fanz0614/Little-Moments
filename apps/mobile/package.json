@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "main": "expo-router/entry",
   "dependencies": {
+    "@lm/ai-contracts": "workspace:*",
     "@lm/layout-engine": "workspace:*",
     "@lm/page-schema": "workspace:*",
     "@react-native-community/datetimepicker": "9.2.1",

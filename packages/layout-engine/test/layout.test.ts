@@ -216,3 +216,30 @@ describe('templates (heading vs decor)', () => {
     }
   });
 });
+
+describe('caption provenance', () => {
+  it('marks the caption as ai-draft when the caller says so, and as user by default', async () => {
+    const { layoutPage } = await import('../src');
+    const base = {
+      pageId: 'p',
+      journalDate: '2026-10-21',
+      photos: [
+        { id: 'a', width: 4000, height: 3000 },
+        { id: 'b', width: 3000, height: 4000 },
+        { id: 'c', width: 4000, height: 3000 },
+      ],
+      caption: 'Noah pulled himself up on the couch.',
+      now: 1,
+      newId: (() => {
+        let n = 0;
+        return () => `id-${n++}`;
+      })(),
+    };
+    const measure = (text: string, style: { fontSize: number }, maxWidth: number) =>
+      Math.ceil((text.length * style.fontSize * 0.5) / maxWidth) * style.fontSize * 1.4;
+    const source = (r: ReturnType<typeof layoutPage>) =>
+      r.doc.layers.filter((l) => l.type === 'text').map((l) => (l.type === 'text' ? l.source : null));
+    expect(source(layoutPage({ ...base, captionSource: 'ai-draft' }, measure))).toEqual(['template', 'ai-draft']);
+    expect(source(layoutPage(base, measure))).toEqual(['template', 'user']);
+  });
+});

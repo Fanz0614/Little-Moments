@@ -89,7 +89,12 @@ export default function Home() {
                   <Image source={{ uri: docUri(item.thumbPath) }} style={StyleSheet.absoluteFill} resizeMode="cover" />
                 ) : null}
               </View>
-              <Text style={styles.date} numberOfLines={1}>
+              {item.title ? (
+                <Text style={styles.title} numberOfLines={1}>
+                  {item.title}
+                </Text>
+              ) : null}
+              <Text style={[styles.date, item.title ? { marginTop: 2 } : null]} numberOfLines={1}>
                 {formatJournalDate(item.journalDate, 'en')}
               </Text>
             </Pressable>
@@ -122,6 +127,7 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
   },
+  title: { marginTop: 8, fontSize: 14, fontWeight: '600', color: colors.ink },
   date: { marginTop: 8, fontSize: 13, color: colors.softInk },
   stats: { marginTop: 24, fontSize: 12, color: colors.faint, textAlign: 'center' },
 });

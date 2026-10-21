@@ -93,6 +93,16 @@ curl -s -X POST localhost:8787/v1/captions \
   -d '{"requestId":"7d3c8a0e-2f4b-4c1d-9e8f-000000000001","input":{"nickname":"Mia","ageText":"3 months 12 days","note":"rolled over today","photoCount":3,"pronoun":"she"}}'
 ```
 
+### 在 App 里试 AI 配文
+
+1. 一个终端：`pnpm --filter @lm/api dev`（服务要一直开着）
+2. 另一个终端：`cd apps/mobile && npx expo run:ios`
+3. 新建一页 → 写几个词 → 点 **✨ Help me write** → 预览卡里选 Use this / Try again / Keep mine
+
+- 模拟器默认连 `http://127.0.0.1:8787`。真机要用 Mac 的局域网地址：服务端 `HOST=0.0.0.0 pnpm --filter @lm/api dev`，App 端 `EXPO_PUBLIC_API_URL=http://<Mac 的 IP>:8787 npx expo run:ios`。
+- 服务没开、断网、超时或配额用完：预览区显示 "Couldn't write one right now"，用户自己的话不受影响。
+- 本地埋点（只存在设备上）：`ai_requested` / `ai_result` / `ai_accepted` / `ai_kept_mine` / `ai_undo`；首次导出时记录 AI 原文和最终文字的编辑距离（`ai_caption_exported`）。
+
 **上线前必须先做身份校验**（App Attest 或用户登录）。`X-Device-Id` 由 App 自己生成，可以伪造，只用于限流。
 
 ## 真机测试清单

@@ -12,8 +12,9 @@ type RawDoc = Record<string, unknown> & { schemaVersion?: unknown };
 type Migration = (doc: RawDoc) => RawDoc;
 
 export const migrations: Record<number, Migration> = {
-  // v1 is the first version. Example for the future:
-  // 1: (doc) => ({ ...doc, schemaVersion: 2, background: { ...doc.background, texture: null } }),
+  // v1 -> v2: TextLayer.source gains 'ai-draft'. No v1 data changes; the bump
+  // exists so a v1 app reading a v2 page fails clearly instead of on parse.
+  1: (doc) => ({ ...doc, schemaVersion: 2 }),
 };
 
 export class PageMigrationError extends Error {

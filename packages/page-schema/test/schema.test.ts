@@ -12,7 +12,7 @@ import {
 } from '../src';
 
 const validDoc = () => ({
-  schemaVersion: 1,
+  schemaVersion: CURRENT_SCHEMA_VERSION as number,
   id: 'page-1',
   journalDate: '2026-10-19',
   templateId: 't3-hero',
@@ -71,6 +71,22 @@ describe('migratePage', () => {
 
   it('refuses pages from a newer app instead of guessing', () => {
     expect(() => migratePage({ ...validDoc(), schemaVersion: CURRENT_SCHEMA_VERSION + 1 })).toThrow(PageMigrationError);
+  });
+
+  it('migrates a v1 page (as stored by the first release) to the current version', () => {
+    const v1 = { ...validDoc(), schemaVersion: 1 };
+    const doc = migratePage(v1);
+    expect(doc.schemaVersion).toBe(CURRENT_SCHEMA_VERSION);
+    expect(doc.layers).toHaveLength(3);
+    const text = doc.layers[1]!;
+    expect(text.type === 'text' && text.source).toBe('user');
+  });
+
+  it('accepts ai-draft text from v2 on', () => {
+    const raw = validDoc();
+    (raw.layers[1] as { source?: string }).source = 'ai-draft';
+    const text = parseStoredPage(JSON.stringify(raw)).layers[1]!;
+    expect(text.type === 'text' && text.source).toBe('ai-draft');
   });
 
   it('refuses pages without a version', () => {

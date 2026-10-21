@@ -8,8 +8,29 @@ import type { SQLiteDatabase } from 'expo-sqlite';
  *   page_created   layout generated and saved        data: { flowId, photoCount, templateId }
  *   page_exported  PNG/PDF shared                    data: { format }
  *   relayout       user tapped Shuffle layout              data: { templateId }
+ *
+ * AI caption assist (step 4). Text is stored only in ai_caption_saved, locally,
+ * so the edit distance at first export can be computed; nothing is uploaded.
+ *   ai_requested         tapped Help me write / Try again   data: { flowId, requestId }
+ *   ai_result            response arrived                     data: { flowId, requestId, kind, reason?, warnings, latencyMs }
+ *   ai_accepted          tapped Use this                      data: { flowId, requestId }
+ *   ai_kept_mine         tapped Keep mine                     data: { flowId, requestId }
+ *   ai_undo              undid an accepted suggestion         data: { flowId }
+ *   ai_caption_saved     page created with an AI caption      data: { flowId, requestId, aiCaption }
+ *   ai_caption_exported  first export of such a page          data: { distance, ratio, aiLength, finalLength, removed }
  */
-export type EventName = 'flow_started' | 'page_created' | 'page_exported' | 'relayout';
+export type EventName =
+  | 'flow_started'
+  | 'page_created'
+  | 'page_exported'
+  | 'relayout'
+  | 'ai_requested'
+  | 'ai_result'
+  | 'ai_accepted'
+  | 'ai_kept_mine'
+  | 'ai_undo'
+  | 'ai_caption_saved'
+  | 'ai_caption_exported';
 
 export async function logEvent(
   db: SQLiteDatabase,

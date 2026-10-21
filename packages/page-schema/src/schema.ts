@@ -11,7 +11,7 @@ import { z } from 'zod';
  * Layers are ordered bottom -> top.
  */
 
-export const CURRENT_SCHEMA_VERSION = 1 as const;
+export const CURRENT_SCHEMA_VERSION = 2 as const;
 
 export const A4_PORTRAIT = { width: 595, height: 842 } as const;
 
@@ -75,6 +75,9 @@ export const TextStyleSchema = z.object({
 });
 export type TextStyle = z.infer<typeof TextStyleSchema>;
 
+export const TextSourceSchema = z.enum(['user', 'template', 'ai-draft']);
+export type TextSource = z.infer<typeof TextSourceSchema>;
+
 export const TextLayerSchema = z.object({
   ...LayerBase,
   type: z.literal('text'),
@@ -82,10 +85,11 @@ export const TextLayerSchema = z.object({
   style: TextStyleSchema,
   /**
    * Where the text came from. 'user' = typed by the user, 'template' = a
-   * template default such as the date. Phase 2 adds 'ai-draft' so AI text is
-   * always identifiable and never silently presented as the user's words.
+   * template default such as the date, 'ai-draft' = the user chose an AI
+   * caption (v2). Provenance only: it stays 'ai-draft' after edits, so the
+   * edit-distance metric can find it. Not shown in the UI or the export.
    */
-  source: z.enum(['user', 'template']).default('user'),
+  source: TextSourceSchema.default('user'),
 });
 export type TextLayer = z.infer<typeof TextLayerSchema>;
 

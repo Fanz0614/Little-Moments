@@ -16,6 +16,8 @@ export type PageSummary = {
   id: string;
   journalDate: string;
   thumbPath: string | null;
+  /** AI title the user accepted; null for pages written in their own words. */
+  title: string | null;
   updatedAt: number;
 };
 
@@ -72,22 +74,24 @@ export async function getPhotos(db: SQLiteDatabase, ids: readonly string[]): Pro
 export async function savePage(
   db: SQLiteDatabase,
   doc: PageDocument,
-  opts: { thumbPath?: string | null; babyId?: string | null } = {},
+  opts: { thumbPath?: string | null; babyId?: string | null; title?: string | null } = {},
 ): Promise<void> {
   await db.runAsync(
-    `INSERT INTO pages (id, journal_date, doc_json, thumb_path, baby_id, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)
+    `INSERT INTO pages (id, journal_date, doc_json, thumb_path, baby_id, title, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)
      ON CONFLICT(id) DO UPDATE SET
        journal_date = excluded.journal_date,
        doc_json = excluded.doc_json,
        thumb_path = COALESCE(excluded.thumb_path, pages.thumb_path),
        baby_id = COALESCE(excluded.baby_id, pages.baby_id),
+       title = COALESCE(excluded.title, pages.title),
        updated_at = excluded.updated_at`,
     doc.id,
     doc.journalDate,
     JSON.stringify(doc),
     opts.thumbPath ?? null,
     opts.babyId ?? null,
+    opts.title ?? null,
     doc.createdAt,
     doc.updatedAt,
   );
@@ -106,10 +110,19 @@ export async function loadPage(db: SQLiteDatabase, id: string): Promise<{ doc: P
 }
 
 export async function listPages(db: SQLiteDatabase): Promise<PageSummary[]> {
-  const rows = await db.getAllAsync<{ id: string; journal_date: string; thumb_path: string | null; updated_at: number }>(
-    'SELECT id, journal_date, thumb_path, updated_at FROM pages ORDER BY journal_date DESC, created_at DESC',
+  const rows = await db.getAllAsync<{ id: string; journal_date: string; thumb_path: string | null; title: string | null; updated_at: number }>(
+    'SELECT id, journal_date, thumb_path, title, updated_at FROM pages ORDER BY journal_date DESC, created_at DESC',
   );
-  return rows.map((r) => ({ id: r.id, journalDate: r.journal_date, thumbPath: r.thumb_path, updatedAt: r.updated_at }));
+  return rows.map((r) => ({ id: r.id, journalDate: r.journal_date, thumbPath: r.thumb_path, title: r.title, updatedAt: r.updated_at }));
+}
+
+export async function getSetting(db: SQLiteDatabase, key: string): Promise<string | null> {
+  const row = await db.getFirstAsync<{ value: string }>('SELECT value FROM settings WHERE key = ?', key);
+  return row?.value ?? null;
+}
+
+export async function setSetting(db: SQLiteDatabase, key: string, value: string): Promise<void> {
+  await db.runAsync('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value', key, value);
 }
 
 export async function deletePage(db: SQLiteDatabase, id: string): Promise<void> {

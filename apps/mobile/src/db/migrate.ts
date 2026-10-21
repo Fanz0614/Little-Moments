@@ -51,6 +51,16 @@ const MIGRATIONS: string[] = [
   ALTER TABLE pages ADD COLUMN baby_id TEXT;
   CREATE INDEX pages_by_baby ON pages (baby_id, journal_date DESC);
   `,
+  // v3: AI caption. pages.title = the AI title the user accepted, shown as the
+  // page's name in the grid (not drawn on the page). settings holds small
+  // app-wide values such as the anonymous device id used for API rate limits.
+  `
+  ALTER TABLE pages ADD COLUMN title TEXT;
+  CREATE TABLE settings (
+    key TEXT PRIMARY KEY NOT NULL,
+    value TEXT NOT NULL
+  );
+  `,
 ];
 
 export async function migrateDb(db: SQLiteDatabase): Promise<void> {

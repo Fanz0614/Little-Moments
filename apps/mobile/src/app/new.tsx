@@ -27,6 +27,9 @@ import { colors, radius } from '@/ui/theme';
 import { S } from '@/strings';
 import { useBaby } from '@/baby/BabyContext';
 import { ageText, isValidCalendarDate } from '@/baby/derive';
+import { useToday } from '@/baby/useToday';
+import { CaptionAssist, type AcceptedCaption } from '@/ai/CaptionAssist';
+import { buildCaptionInput } from '@/ai/input';
 
 const MIN = Math.min(...SUPPORTED_PHOTO_COUNTS);
 const MAX = Math.max(...SUPPORTED_PHOTO_COUNTS);
@@ -42,6 +45,10 @@ export default function NewPage() {
   const [journalDate, setJournalDate] = useState('');
   const [caption, setCaption] = useState('');
   const [creating, setCreating] = useState(false);
+  // Set when the user chose an AI suggestion; their own words are kept for Undo.
+  const [aiChoice, setAiChoice] = useState<AcceptedCaption | null>(null);
+  const [wordsBeforeAi, setWordsBeforeAi] = useState('');
+  const today = useToday();
 
   useEffect(() => {
     void logEvent(db, 'flow_started', null, { flowId });
@@ -89,14 +96,19 @@ export default function NewPage() {
           journalDate,
           photos: chosen.map((p) => ({ id: p.id, width: p.width, height: p.height })),
           caption,
+          captionSource: aiChoice ? 'ai-draft' : 'user',
           ageText: baby ? ageText(baby.birthday, journalDate) : undefined,
           now: Date.now(),
           newId: randomUUID,
         },
         skiaMeasureText,
       );
-      await savePage(db, doc, { babyId: baby?.id ?? null });
-      await logEvent(db, 'page_created', pageId, { flowId, photoCount: chosen.length, templateId: doc.templateId });
+      // The AI title is the page's name in the grid; it is not drawn on the page.
+      await savePage(db, doc, { babyId: baby?.id ?? null, title: aiChoice?.output.title ?? null });
+      await logEvent(db, 'page_created', pageId, { flowId, photoCount: chosen.length, templateId: doc.templateId, ai: !!aiChoice });
+      if (aiChoice) {
+        await logEvent(db, 'ai_caption_saved', pageId, { flowId, requestId: aiChoice.requestId, aiCaption: aiChoice.output.caption });
+      }
       router.replace(`/page/${pageId}`);
     } catch (e) {
       setCreating(false);
@@ -164,6 +176,28 @@ export default function NewPage() {
           style={[styles.input, { minHeight: 96, textAlignVertical: 'top' }]}
         />
         {showNudge && <Text style={styles.small}>{S.newPage.captionNudge}</Text>}
+        <CaptionAssist
+          note={caption}
+          onChangeNote={setCaption}
+          flowId={flowId}
+          accepted={aiChoice !== null}
+          buildInput={() =>
+            baby && caption.trim()
+              ? // Before photos are picked there is no journal date yet: age as of today.
+                buildCaptionInput(baby, dateValid ? journalDate : today, caption, Math.max(selected.length, MIN))
+              : null
+          }
+          onUse={(c) => {
+            setWordsBeforeAi(caption);
+            setCaption(c.output.caption);
+            setAiChoice(c);
+          }}
+          onUndo={() => {
+            setCaption(wordsBeforeAi);
+            setAiChoice(null);
+            void logEvent(db, 'ai_undo', null, { flowId });
+          }}
+        />
 
         <Text style={[styles.step, { marginTop: 20 }]}>{S.newPage.date}</Text>
         <TextInput
