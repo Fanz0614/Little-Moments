@@ -183,6 +183,8 @@ describe('first-person voice check', () => {
 
   it('does not flag words the note itself used, or words that merely contain them', () => {
     expect(findFirstPerson(out('I finally finished my book.'), 'I finally finished my book')).toEqual([]);
+    // A first-person note allows any first-person word (caption@4 eval: "on my chest" -> "I loved it")
+    expect(findFirstPerson(out('Hugo fell asleep on my chest, and I loved it.'), 'fell asleep on my chest')).toEqual([]);
     expect(findFirstPerson(out('Usually Ruby is a mighty sleeper, in our opinion... not.'), 'nap')).toEqual(['our']);
     expect(findFirstPerson(out('Musical time with Ruby.'), 'music')).toEqual([]);
   });

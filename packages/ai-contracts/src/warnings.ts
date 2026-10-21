@@ -80,8 +80,13 @@ export function findFabricatedPeople(output: CaptionOutput, note: string): strin
   return unsupported(PEOPLE, output, note);
 }
 
-/** First-person words in the output that the note itself did not use. */
+/**
+ * First-person words in the output when the note has none. A note written in
+ * the first person ("on my chest") allows the caption to be too ("I loved it"):
+ * it is the parent's own journal. Word-by-word comparison was too strict.
+ */
 export function findFirstPerson(output: CaptionOutput, note: string): string[] {
+  if (FIRST_PERSON.some((r) => r.re.test(note))) return [];
   return unsupported(FIRST_PERSON, output, note);
 }
 
